@@ -1051,6 +1051,7 @@ namespace EasyMICBooster
             if (LanguageCombo.SelectedItem is ComboBoxItem item && item.Tag is string code)
             {
                 Localization.LocalizationManager.Instance.LoadLanguage(code);
+                UpdateUpdateStatusUI();
                 SaveSettings();
             }
         }
@@ -1176,39 +1177,64 @@ namespace EasyMICBooster
         }
 
         private string? _latestVersion;
+        private enum UpdateState { None, Checking, Available, Error, UpToDate }
+        private UpdateState _currentUpdateState = UpdateState.None;
+
+        private void UpdateUpdateStatusUI()
+        {
+             if (UpdateStatusText == null) return;
+
+             switch (_currentUpdateState)
+             {
+                 case UpdateState.Checking:
+                      UpdateStatusText.Text = Localization.LocalizationManager.Instance.GetString("Msg_UpdateChecking");
+                      UpdateStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#888888"));
+                      UpdateStatusText.TextDecorations = null;
+                      break;
+                 case UpdateState.Available:
+                      UpdateStatusText.Text = string.Format(Localization.LocalizationManager.Instance.GetString("Msg_UpdateAvailable"), _latestVersion);
+                      UpdateStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#4CAF50"));
+                      UpdateStatusText.TextDecorations = TextDecorations.Underline;
+                      break;
+                 case UpdateState.Error:
+                      UpdateStatusText.Text = Localization.LocalizationManager.Instance.GetString("Msg_UpdateError");
+                      UpdateStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B"));
+                      UpdateStatusText.TextDecorations = null;
+                      break;
+                 case UpdateState.UpToDate:
+                 case UpdateState.None:
+                      UpdateStatusText.Text = "";
+                      break;
+             }
+        }
 
         private async void CheckForUpdatesIfNeeded()
         {
             if (_hasCheckedUpdate) return;
             _hasCheckedUpdate = true;
             
-            // Show "確認中" state
-            UpdateStatusText.Text = Localization.LocalizationManager.Instance.GetString("Msg_UpdateChecking");
-            UpdateStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#888888"));
-            UpdateStatusText.TextDecorations = null;
+            _currentUpdateState = UpdateState.Checking;
+            UpdateUpdateStatusUI();
             
             var (isNewer, latest, error) = await VersionManager.CheckForUpdateAsync();
             
             if (error != null)
             {
-                // Show error state
-                UpdateStatusText.Text = Localization.LocalizationManager.Instance.GetString("Msg_UpdateError");
-                UpdateStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B"));
-                UpdateStatusText.TextDecorations = null;
+                _currentUpdateState = UpdateState.Error;
+                UpdateUpdateStatusUI();
                 return;
             }
             
             if (isNewer)
             {
                 _latestVersion = latest;
-                UpdateStatusText.Text = string.Format(Localization.LocalizationManager.Instance.GetString("Msg_UpdateAvailable"), latest);
-                UpdateStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#4CAF50"));
-                UpdateStatusText.TextDecorations = TextDecorations.Underline;
+                _currentUpdateState = UpdateState.Available;
+                UpdateUpdateStatusUI();
             }
             else
             {
-                // Latest version, clear text
-                UpdateStatusText.Text = "";
+                _currentUpdateState = UpdateState.UpToDate;
+                UpdateUpdateStatusUI();
             }
         }
 

@@ -31,7 +31,7 @@ namespace EasyMICBooster
             
             if (!File.Exists(_configPath))
             {
-                WriteConfig(1.0f, true, "", "", false, new List<EqBand>(), -80.0f, 40.0f, false, false, "", "ja", true);
+                WriteConfig(1.0f, true, "", "", false, new List<EqBand>(), -80.0f, 40.0f, false, false, "", "en", true);
             }
             if (!Directory.Exists(_presetsDir))
             {
@@ -52,7 +52,7 @@ namespace EasyMICBooster
             bool limiterEnabled = false; // Default disabled
             bool flatMode = false;
             string lastPresetName = "";
-            string language = "ja"; // Default Japanese
+            string language = "en"; // Default English
             bool updateCheck = true; // Default True
 
             try

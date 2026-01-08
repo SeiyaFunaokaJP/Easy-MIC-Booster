@@ -54,7 +54,7 @@ namespace EasyMICBooster
         /// <summary>
         /// GitHub raw URL for version checking (update with your repository)
         /// </summary>
-        public const string GitHubVersionUrl = "https://raw.githubusercontent.com/SeiyaFunaokaJP/Easy-MIC-Booster/main/version.txt";
+        public const string GitHubVersionUrl = "https://raw.githubusercontent.com/SeiyaFunaokaJP/Easy-MIC-Booster/master/version.txt";
         
         /// <summary>
         /// Checks if a newer version is available on GitHub
