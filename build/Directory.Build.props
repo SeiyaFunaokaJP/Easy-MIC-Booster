@@ -1,0 +1,1 @@
+<Project><PropertyGroup><BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)obj\</BaseIntermediateOutputPath><MSBuildProjectExtensionsPath>$(MSBuildThisFileDirectory)obj\</MSBuildProjectExtensionsPath><BaseOutputPath>$(MSBuildThisFileDirectory)bin\</BaseOutputPath></PropertyGroup></Project>

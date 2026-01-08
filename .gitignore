@@ -1,0 +1,14 @@
+#Output
+build/*
+!build/Directory.Build.props
+!build/*.bat
+src/bin/*
+
+# Visual Studio & .NET Standard Ignores
+.vs/
+[Oo]bj/
+[Bb]in/
+*.user
+*.suo
+*.userprefs
+*.lock.json
