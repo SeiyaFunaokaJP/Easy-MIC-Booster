@@ -208,6 +208,17 @@ namespace EasyMICBooster
         private void OnDataAvailable(object? sender, WaveInEventArgs e)
         {
             if (_buffer == null) return;
+
+            // Simple Drift Correction
+            // If the buffer gets too large (indicating input is faster than output, or output stalled),
+            // we clear it to strictly sync back to "now".
+            // 100ms is chosen because Render latency is 50ms. 
+            // If we are > 100ms, we are definitely lagging.
+            if (_buffer.BufferedDuration.TotalMilliseconds > 100)
+            {
+                _buffer.ClearBuffer();
+            }
+
             // Just feed buffer
             _buffer.AddSamples(e.Buffer, 0, e.BytesRecorded);
         }
