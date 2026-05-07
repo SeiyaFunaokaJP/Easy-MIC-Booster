@@ -33,6 +33,8 @@ namespace EasyMICBooster
         private UiEqPoint? _draggingPoint = null;
         private List<Preset> _presets = new List<Preset>();
         private bool _isLoadingPreset = false;
+        private List<DeviceProfile> _deviceProfiles = new List<DeviceProfile>();
+        private bool _isLoadingDeviceProfile = false;
         
         // View Settings
         private double _minFreq = 20;
@@ -48,6 +50,10 @@ namespace EasyMICBooster
         private float[]? _currentSpectrum;
         private DateTime _lastSpectrumUpdate = DateTime.MinValue;
 
+        // Auto-restart
+        private System.Windows.Threading.DispatcherTimer? _restartTimer;
+        private bool _isShuttingDown = false;
+
         public MainWindow()
         {
             _isInitializing = true;
@@ -61,6 +67,8 @@ namespace EasyMICBooster
             _audioEngine.PeakLevelReceived += OnPeakLevelReceived;
             _audioEngine.FftDataReceived += OnFftDataReceived;
             _audioEngine.ErrorOccurred += OnAudioError;
+            _audioEngine.StreamFaulted += OnStreamFaulted;
+            Microsoft.Win32.SystemEvents.PowerModeChanged += OnPowerModeChanged;
             
             LoadDevices();
             LoadSettings();
@@ -88,7 +96,7 @@ namespace EasyMICBooster
 
         private void LoadSettings()
         {
-            var (gain, enabled, inputId, outputId, unlockLimit, bands, noiseGate, limiterThreshold, limiterEnabled, flatMode, lastPresetName, language, updateCheck) = _configManager.ReadConfig();
+            var (gain, enabled, inputId, outputId, unlockLimit, bands, noiseGate, limiterThreshold, limiterEnabled, flatMode, lastPresetName, lastDeviceProfileName, language, updateCheck) = _configManager.ReadConfig();
 
             // Enforce Defaults if config is empty logic can be handled here if needed, 
             // but config manager already provides defaults.
@@ -120,6 +128,7 @@ namespace EasyMICBooster
             
             // Startup Check
             StartupCheckbox.IsChecked = IsStartupEnabled();
+            if (StartupCheckbox.IsChecked == true) UpdateStartupPath();
             
             // Update Check always enabled, no UI toggle needed
             
@@ -171,6 +180,24 @@ namespace EasyMICBooster
             // Load Presets
             _presets = _configManager.LoadPresets();
             UpdatePresetCombo();
+
+            // Load Device Profiles
+            _deviceProfiles = _configManager.LoadDeviceProfiles();
+            UpdateDeviceProfileCombo();
+            if (!string.IsNullOrEmpty(lastDeviceProfileName))
+            {
+                var dp = _deviceProfiles.FirstOrDefault(x => x.Name == lastDeviceProfileName);
+                if (dp != null)
+                {
+                    _isLoadingDeviceProfile = true;
+                    DeviceProfileCombo.SelectedItem = dp;
+                    _isLoadingDeviceProfile = false;
+                }
+                else
+                {
+                    DeviceProfileCombo.Text = lastDeviceProfileName;
+                }
+            }
             
             // Load Language
             // Initialize Localization
@@ -969,9 +996,131 @@ namespace EasyMICBooster
 
         private void OpenPresetFolder_Click(object sender, RoutedEventArgs e)
         {
-             string path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Presets");
+             string path = _configManager.PresetsDirectory;
              if (!System.IO.Directory.Exists(path)) System.IO.Directory.CreateDirectory(path);
              Process.Start("explorer.exe", path);
+        }
+
+        private void OpenConfigFolder_Click(object sender, RoutedEventArgs e)
+        {
+            string path = _configManager.ConfigDirectory;
+            if (!System.IO.Directory.Exists(path)) System.IO.Directory.CreateDirectory(path);
+            Process.Start("explorer.exe", path);
+        }
+
+        // Device Profile Handlers
+        private void UpdateDeviceProfileCombo()
+        {
+            _isLoadingDeviceProfile = true;
+            DeviceProfileCombo.ItemsSource = null;
+            DeviceProfileCombo.ItemsSource = _deviceProfiles;
+            _isLoadingDeviceProfile = false;
+        }
+
+        private void DeviceProfile_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializing || _isLoadingDeviceProfile) return;
+            if (DeviceProfileCombo.SelectedItem is DeviceProfile dp)
+            {
+                ApplyDeviceProfile(dp);
+            }
+        }
+
+        private void ApplyDeviceProfile(DeviceProfile dp)
+        {
+            _isLoadingDeviceProfile = true;
+            try
+            {
+                if (!string.IsNullOrEmpty(dp.InputDeviceId))
+                {
+                    var devices = InputDeviceCombo.ItemsSource as IEnumerable<MMDevice>;
+                    if (devices != null)
+                    {
+                        var d = devices.FirstOrDefault(x => x.ID == dp.InputDeviceId);
+                        if (d != null) InputDeviceCombo.SelectedItem = d;
+                    }
+                }
+                if (!string.IsNullOrEmpty(dp.OutputDeviceId))
+                {
+                    var devices = OutputDeviceCombo.ItemsSource as IEnumerable<MMDevice>;
+                    if (devices != null)
+                    {
+                        var d = devices.FirstOrDefault(x => x.ID == dp.OutputDeviceId);
+                        if (d != null) OutputDeviceCombo.SelectedItem = d;
+                    }
+                }
+            }
+            finally
+            {
+                _isLoadingDeviceProfile = false;
+            }
+            // Device_SelectionChanged restarts audio + saves settings.
+        }
+
+        private void SaveDeviceProfile_Click(object sender, RoutedEventArgs e)
+        {
+            string name = DeviceProfileCombo.Text.Trim();
+            if (string.IsNullOrEmpty(name))
+            {
+                MessageBox.Show(Localization.LocalizationManager.Instance.GetString("Msg_DeviceProfileNameRequired"),
+                                Localization.LocalizationManager.Instance.GetString("Msg_Error"),
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var input = InputDeviceCombo.SelectedItem as MMDevice;
+            var output = OutputDeviceCombo.SelectedItem as MMDevice;
+
+            var existing = _deviceProfiles.FirstOrDefault(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            if (existing != null)
+            {
+                string fmt = Localization.LocalizationManager.Instance.GetString("Msg_DeviceProfileOverwrite");
+                var res = MessageBox.Show(string.Format(fmt, name),
+                                          Localization.LocalizationManager.Instance.GetString("Msg_Confirm"),
+                                          MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (res != MessageBoxResult.Yes) return;
+
+                existing.InputDeviceId = input?.ID ?? "";
+                existing.OutputDeviceId = output?.ID ?? "";
+                existing.InputDeviceName = input?.FriendlyName ?? "";
+                existing.OutputDeviceName = output?.FriendlyName ?? "";
+            }
+            else
+            {
+                var dp = new DeviceProfile
+                {
+                    Name = name,
+                    InputDeviceId = input?.ID ?? "",
+                    OutputDeviceId = output?.ID ?? "",
+                    InputDeviceName = input?.FriendlyName ?? "",
+                    OutputDeviceName = output?.FriendlyName ?? ""
+                };
+                _deviceProfiles.Add(dp);
+            }
+
+            _configManager.SaveDeviceProfile(existing ?? _deviceProfiles.Last());
+            UpdateDeviceProfileCombo();
+            DeviceProfileCombo.SelectedItem = _deviceProfiles.FirstOrDefault(x => x.Name == name);
+            SaveSettings();
+        }
+
+        private void DeleteDeviceProfile_Click(object sender, RoutedEventArgs e)
+        {
+            if (DeviceProfileCombo.SelectedItem is DeviceProfile dp)
+            {
+                string fmt = Localization.LocalizationManager.Instance.GetString("Msg_DeviceProfileDelete");
+                var res = MessageBox.Show(string.Format(fmt, dp.Name),
+                                          Localization.LocalizationManager.Instance.GetString("Msg_Confirm"),
+                                          MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (res == MessageBoxResult.Yes)
+                {
+                    _deviceProfiles.Remove(dp);
+                    _configManager.DeleteDeviceProfile(dp.Name);
+                    UpdateDeviceProfileCombo();
+                    DeviceProfileCombo.Text = "";
+                    SaveSettings();
+                }
+            }
         }
 
         private void FlatMode_Changed(object sender, RoutedEventArgs e)
@@ -1031,7 +1180,9 @@ namespace EasyMICBooster
             var input = InputDeviceCombo.SelectedItem as MMDevice; 
             var output = OutputDeviceCombo.SelectedItem as MMDevice; 
 
-            _configManager.WriteConfig(1.0f, BoostToggle?.IsChecked ?? true, input?.ID ?? "", output?.ID ?? "", 
+            string lastDeviceProfileName = (DeviceProfileCombo?.SelectedItem as DeviceProfile)?.Name ?? DeviceProfileCombo?.Text ?? "";
+
+            _configManager.WriteConfig(1.0f, BoostToggle?.IsChecked ?? true, input?.ID ?? "", output?.ID ?? "",
                                      UnlockLimitCheck.IsChecked == true,
                                      _uiPoints.Select(p => new EqBand { Frequency = (float)p.Freq, Gain = (float)p.Gain, Q = p.Q, Type = p.Type }).ToList(),
                                      (float)NoiseGateSlider.Value,
@@ -1039,6 +1190,7 @@ namespace EasyMICBooster
                                      true, // Fixed Limiter Enabled
                                      FlatModeCheck.IsChecked == true,
                                      PresetCombo.Text,
+                                     lastDeviceProfileName,
                                      Localization.LocalizationManager.Instance.CurrentLanguage,
                                      true); // Always enabled
             
@@ -1127,7 +1279,17 @@ namespace EasyMICBooster
             }
         }
         
-        private void RefreshDevices_Click(object sender, RoutedEventArgs e) { LoadDevices(); UpdateDeviceValidation(); }
+        private void RefreshDevices_Click(object sender, RoutedEventArgs e)
+        {
+            string? inputId = (InputDeviceCombo.SelectedItem as MMDevice)?.ID;
+            string? outputId = (OutputDeviceCombo.SelectedItem as MMDevice)?.ID;
+
+            LoadDevices();
+
+            ReSelectDevice(InputDeviceCombo, inputId);
+            ReSelectDevice(OutputDeviceCombo, outputId);
+            UpdateDeviceValidation();
+        }
         private void StartAudio() { 
             var i=InputDeviceCombo.SelectedItem as MMDevice; var o=OutputDeviceCombo.SelectedItem as MMDevice; 
             if(i==null||o==null){ UpdateDeviceValidation(); return;} 
@@ -1149,25 +1311,182 @@ namespace EasyMICBooster
 
 
         private void OnPeakLevelReceived(object? s, float v) { Dispatcher.InvokeAsync(()=>{if(LevelMeter!=null&&ActualWidth>0){LevelMeter.MaxWidth=Math.Max(0,ActualWidth-80);LevelMeter.Width=LevelMeter.MaxWidth*v;}}); }
-        private void OnAudioError(object? s, string m) { Dispatcher.InvokeAsync(()=>{StopAudio();MessageBox.Show(m);}); }
+        private void OnAudioError(object? s, string m)
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                StopAudio();
+                // Suppress MessageBox if auto-restart is already scheduled
+                if (_restartTimer != null && _restartTimer.IsEnabled) return;
+                MessageBox.Show(m);
+            });
+        }
+
+        private void OnStreamFaulted(object? sender, string reason)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (_isShuttingDown) return;
+                System.Diagnostics.Debug.WriteLine($"[AudioEngine] Stream fault: {reason}");
+                ScheduleRestart();
+            });
+        }
+
+        private void OnPowerModeChanged(object sender, Microsoft.Win32.PowerModeChangedEventArgs e)
+        {
+            if (e.Mode == Microsoft.Win32.PowerModes.Resume)
+            {
+                Dispatcher.BeginInvoke(() =>
+                {
+                    if (_isShuttingDown) return;
+                    System.Diagnostics.Debug.WriteLine("[PowerMode] Resume detected, scheduling restart");
+                    ScheduleRestart(2000);
+                });
+            }
+        }
+
+        private void ScheduleRestart(int delayMs = 500)
+        {
+            if (_isShuttingDown) return;
+
+            // Debounce: if a restart is already scheduled, reset the timer
+            if (_restartTimer != null)
+            {
+                _restartTimer.Stop();
+            }
+            else
+            {
+                _restartTimer = new System.Windows.Threading.DispatcherTimer();
+                _restartTimer.Tick += (s, e) =>
+                {
+                    _restartTimer.Stop();
+                    PerformRestart();
+                };
+            }
+
+            _restartTimer.Interval = TimeSpan.FromMilliseconds(delayMs);
+            _restartTimer.Start();
+        }
+
+        private void PerformRestart()
+        {
+            if (_isShuttingDown) return;
+
+            System.Diagnostics.Debug.WriteLine("[AutoRestart] Performing restart...");
+
+            // Remember current device IDs before stopping
+            string? inputId = (InputDeviceCombo.SelectedItem as MMDevice)?.ID;
+            string? outputId = (OutputDeviceCombo.SelectedItem as MMDevice)?.ID;
+
+            StopAudio();
+            LoadDevices();
+
+            // Re-select devices from refreshed list
+            ReSelectDevice(InputDeviceCombo, inputId);
+            ReSelectDevice(OutputDeviceCombo, outputId);
+            UpdateDeviceValidation();
+
+            StartAudio();
+        }
+
+        private void ReSelectDevice(ComboBox combo, string? deviceId)
+        {
+            if (string.IsNullOrEmpty(deviceId)) return;
+            var devices = combo.ItemsSource as IEnumerable<MMDevice>;
+            if (devices == null) return;
+            var match = devices.FirstOrDefault(d => d.ID == deviceId);
+            if (match != null) combo.SelectedItem = match;
+        }
         private void StartupCheckbox_Changed(object s, RoutedEventArgs e) { if(!_isInitializing) SetStartup(StartupCheckbox.IsChecked??false); }
-        private bool IsStartupEnabled() { try{ using var k=Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run",false); return k?.GetValue("EasyMICBooster")!=null;}catch{return false;} }
-        private void SetStartup(bool e) { try{ using var k=Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run",true); if(k!=null) if(e) k.SetValue("EasyMICBooster",$"\"{System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName}\""); else k.DeleteValue("EasyMICBooster",false); }catch{} }
+        private static string? GetExecutablePath()
+        {
+            var path = Environment.ProcessPath;
+            if (!string.IsNullOrEmpty(path) && System.IO.File.Exists(path)) return path;
+            path = Process.GetCurrentProcess().MainModule?.FileName;
+            return string.IsNullOrEmpty(path) ? null : path;
+        }
+        private bool IsStartupEnabled()
+        {
+            try
+            {
+                using var run = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", false);
+                if (run?.GetValue("EasyMICBooster") == null) return false;
+                // StartupApproved\Run first byte: 0x02 = enabled, 0x03 = disabled by Task Manager / Settings.
+                using var approved = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run", false);
+                if (approved?.GetValue("EasyMICBooster") is byte[] flag && flag.Length > 0 && (flag[0] & 1) != 0) return false;
+                return true;
+            }
+            catch { return false; }
+        }
+        private void SetStartup(bool e)
+        {
+            try
+            {
+                using var k = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
+                if (k == null) return;
+                if (e)
+                {
+                    var path = GetExecutablePath();
+                    if (string.IsNullOrEmpty(path))
+                    {
+                        MessageBox.Show("自動起動の登録に失敗しました: 実行ファイルのパスを取得できませんでした。", "エラー", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+                    k.SetValue("EasyMICBooster", $"\"{path}\"");
+                    EnableStartupApproval();
+                }
+                else
+                {
+                    k.DeleteValue("EasyMICBooster", false);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"自動起動の設定に失敗しました: {ex.Message}", "エラー", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        // Task Manager / Settings can disable Run-key entries via StartupApproved.
+        // First byte 0x02 = enabled, 0x03 = disabled. Force-enable when the user opts in.
+        private static void EnableStartupApproval()
+        {
+            try
+            {
+                using var k = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run", true);
+                k?.SetValue("EasyMICBooster", new byte[] { 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, RegistryValueKind.Binary);
+            }
+            catch { }
+        }
+        private void UpdateStartupPath()
+        {
+            try
+            {
+                using var k = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
+                if (k == null) return;
+                var path = GetExecutablePath();
+                if (string.IsNullOrEmpty(path)) return;
+                var cur = $"\"{path}\"";
+                if (k.GetValue("EasyMICBooster") is string old && old != cur) k.SetValue("EasyMICBooster", cur);
+            }
+            catch { }
+        }
         protected override void OnStateChanged(EventArgs e) { base.OnStateChanged(e); if(WindowState==WindowState.Minimized)Hide(); }
-        protected override void OnClosing(System.ComponentModel.CancelEventArgs e) 
-        { 
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
             if (!App.IsExitingFromTray)
             {
-                if (MessageBox.Show(Localization.LocalizationManager.Instance.GetString("Msg_ExitConfirm"), 
-                                    Localization.LocalizationManager.Instance.GetString("Msg_Confirm"), 
+                if (MessageBox.Show(Localization.LocalizationManager.Instance.GetString("Msg_ExitConfirm"),
+                                    Localization.LocalizationManager.Instance.GetString("Msg_Confirm"),
                                     MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                 {
                     e.Cancel = true;
                     return;
                 }
             }
-            _audioEngine?.Dispose(); 
-            base.OnClosing(e); 
+            _isShuttingDown = true;
+            _restartTimer?.Stop();
+            Microsoft.Win32.SystemEvents.PowerModeChanged -= OnPowerModeChanged;
+            _audioEngine?.Dispose();
+            base.OnClosing(e);
         }
 
         protected override void OnContentRendered(EventArgs e)

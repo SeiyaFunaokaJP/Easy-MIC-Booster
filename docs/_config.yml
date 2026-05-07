@@ -1,0 +1,33 @@
+title: Easy MIC Booster
+description: Microphone gain & high-quality audio processing for Windows
+remote_theme: just-the-docs/just-the-docs
+
+url: https://seiyafunaokajp.github.io
+baseurl: /Easy-MIC-Booster
+
+aux_links:
+  GitHub: https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster
+
+color_scheme: dark
+
+nav_sort: case_insensitive
+
+footer_content: >-
+  Easy MIC Booster is licensed under the <a href="https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/blob/main/LICENSE">MIT License</a>.
+
+plugins:
+  - jekyll-remote-theme
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      lang: en
+  - scope:
+      path: "ja"
+    values:
+      lang: ja
+
+exclude:
+  - Gemfile
+  - Gemfile.lock

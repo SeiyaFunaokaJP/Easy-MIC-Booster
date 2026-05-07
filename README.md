@@ -20,9 +20,12 @@ It uses NAudio to capture microphone input, processes it through DSPs such as No
 - **Limiter**: Prevents sound clipping.
 
 ### Documentation
-- **[Documentation Home](docs/en/Home.md)**
-    - [User Guide](docs/en/UserGuide.md) (Installation and Usage)
-    - [Developer Guide](docs/en/DeveloperGuide.md) (Build and Development)
+
+Full documentation: **[seiyafunaokajp.github.io/Easy-MIC-Booster](https://seiyafunaokajp.github.io/Easy-MIC-Booster/)**
+
+- [User Guide](https://seiyafunaokajp.github.io/Easy-MIC-Booster/user-guide) — installation and usage
+- [Features](https://seiyafunaokajp.github.io/Easy-MIC-Booster/features) — audio processing reference
+- [Developer Guide](https://seiyafunaokajp.github.io/Easy-MIC-Booster/developer-guide) — build and contribute
 
 ### Quick Start
 1. Install VB-Cable.
@@ -46,9 +49,12 @@ NAudioを使用してマイク入力をキャプチャし、ノイズゲート�
 - **リミッター**: 音割れ防止。
 
 ### ドキュメント
-- **[日本語ドキュメントホーム](docs/ja/Home.md)**
-    - [ユーザーガイド](docs/ja/UserGuide.md) (インストールと使い方)
-    - [開発者ガイド](docs/ja/DeveloperGuide.md) (ビルドと開発)
+
+完全版ドキュメント: **[seiyafunaokajp.github.io/Easy-MIC-Booster/ja](https://seiyafunaokajp.github.io/Easy-MIC-Booster/ja/)**
+
+- [ユーザーガイド](https://seiyafunaokajp.github.io/Easy-MIC-Booster/ja/user-guide) — インストールと使い方
+- [機能リファレンス](https://seiyafunaokajp.github.io/Easy-MIC-Booster/ja/features) — 音声処理機能の詳細
+- [開発者ガイド](https://seiyafunaokajp.github.io/Easy-MIC-Booster/ja/developer-guide) — ビルドと開発
 
 ### クイックスタート
 1. VB-Cable をインストール。

@@ -17,57 +17,75 @@ namespace EasyMICBooster
         public float NoiseGateThreshold { get; set; } = -80.0f;
     }
 
+    public class DeviceProfile
+    {
+        public string Name { get; set; } = "Default";
+        public string InputDeviceId { get; set; } = "";
+        public string OutputDeviceId { get; set; } = "";
+        public string InputDeviceName { get; set; } = "";
+        public string OutputDeviceName { get; set; } = "";
+    }
+
     public class ConfigManager
     {
+        private readonly string _configDir;
         private readonly string _configPath;
         private readonly string _presetsDir;
-        private const string DefaultConfigPath = @"C:\Program Files\EasyAPO\config.ini";
+        private readonly string _deviceProfilesDir;
 
         public ConfigManager()
         {
-            // Use local config/presets
-            _configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.ini");
-            _presetsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Presets");
-            
+            _configDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "EasyMICBooster");
+            _configPath = Path.Combine(_configDir, "config.ini");
+            _presetsDir = Path.Combine(_configDir, "Presets");
+            _deviceProfilesDir = Path.Combine(_configDir, "DeviceProfiles");
+
+            if (!Directory.Exists(_configDir)) Directory.CreateDirectory(_configDir);
+            if (!Directory.Exists(_presetsDir)) Directory.CreateDirectory(_presetsDir);
+            if (!Directory.Exists(_deviceProfilesDir)) Directory.CreateDirectory(_deviceProfilesDir);
+
             if (!File.Exists(_configPath))
             {
-                WriteConfig(1.0f, true, "", "", false, new List<EqBand>(), -80.0f, 40.0f, false, false, "", "en", true);
-            }
-            if (!Directory.Exists(_presetsDir))
-            {
-                Directory.CreateDirectory(_presetsDir);
+                WriteConfig(1.0f, true, "", "", false, new List<EqBand>(), -80.0f, 40.0f, false, false, "", "", "en", true);
             }
         }
 
-        public (float gain, bool enabled, string inputId, string outputId, bool unlockLimit, List<EqBand> eqBands, float noiseGateThreshold, float limiterThreshold, bool limiterEnabled, bool flatMode, string lastPresetName, string language, bool updateCheck) ReadConfig()
+        public string ConfigDirectory => _configDir;
+        public string PresetsDirectory => _presetsDir;
+        public string DeviceProfilesDirectory => _deviceProfilesDir;
+
+        public (float gain, bool enabled, string inputId, string outputId, bool unlockLimit, List<EqBand> eqBands, float noiseGateThreshold, float limiterThreshold, bool limiterEnabled, bool flatMode, string lastPresetName, string lastDeviceProfileName, string language, bool updateCheck) ReadConfig()
         {
             float gain = 1.0f;
-            bool enabled = true; // Default True
+            bool enabled = true;
             string inputId = "";
             string outputId = "";
             bool unlockLimit = false;
             List<EqBand> eqBands = new List<EqBand>();
-            float noiseGateThreshold = -80.0f; // Default low
-            float limiterThreshold = 40.0f; // Default high (safe)
-            bool limiterEnabled = false; // Default disabled
+            float noiseGateThreshold = -80.0f;
+            float limiterThreshold = 40.0f;
+            bool limiterEnabled = false;
             bool flatMode = false;
             string lastPresetName = "";
-            string language = "en"; // Default English
-            bool updateCheck = true; // Default True
+            string lastDeviceProfileName = "";
+            string language = "en";
+            bool updateCheck = true;
 
             try
             {
                 if (!File.Exists(_configPath))
                 {
-                    return (gain, enabled, inputId, outputId, unlockLimit, eqBands, noiseGateThreshold, limiterThreshold, limiterEnabled, flatMode, lastPresetName, language, updateCheck);
+                    return (gain, enabled, inputId, outputId, unlockLimit, eqBands, noiseGateThreshold, limiterThreshold, limiterEnabled, flatMode, lastPresetName, lastDeviceProfileName, language, updateCheck);
                 }
 
                 var lines = File.ReadAllLines(_configPath);
-                
+
                 foreach (var line in lines)
                 {
                     var trimmed = line.Trim();
-                    
+
                     if (trimmed.StartsWith("Value="))
                     {
                         if (float.TryParse(trimmed.Substring(6), out float val)) gain = val;
@@ -95,7 +113,7 @@ namespace EasyMICBooster
                     }
                     else if (trimmed.StartsWith("NoiseGate="))
                     {
-                         if (float.TryParse(trimmed.Substring(10), out float val)) 
+                         if (float.TryParse(trimmed.Substring(10), out float val))
                          {
                              if (val >= 0) val = -80.0f;
                              noiseGateThreshold = val;
@@ -109,8 +127,6 @@ namespace EasyMICBooster
                     {
                          if (float.TryParse(trimmed.Substring(8), out float val))
                          {
-                             // Just accept value.
-                             // Just accept value.
                              limiterThreshold = val;
                          }
                     }
@@ -121,6 +137,10 @@ namespace EasyMICBooster
                     else if (trimmed.StartsWith("LastPreset="))
                     {
                         lastPresetName = trimmed.Substring(11);
+                    }
+                    else if (trimmed.StartsWith("LastDeviceProfile="))
+                    {
+                        lastDeviceProfileName = trimmed.Substring(18);
                     }
                     else if (trimmed.StartsWith("Language="))
                     {
@@ -134,10 +154,10 @@ namespace EasyMICBooster
             }
             catch (Exception) { }
 
-            return (gain, enabled, inputId, outputId, unlockLimit, eqBands, noiseGateThreshold, limiterThreshold, limiterEnabled, flatMode, lastPresetName, language, updateCheck);
+            return (gain, enabled, inputId, outputId, unlockLimit, eqBands, noiseGateThreshold, limiterThreshold, limiterEnabled, flatMode, lastPresetName, lastDeviceProfileName, language, updateCheck);
         }
 
-        public void WriteConfig(float gain, bool enabled, string inputId, string outputId, bool unlockLimit, List<EqBand> eqBands, float noiseGateThreshold, float limiterThreshold, bool limiterEnabled, bool flatMode, string lastPresetName, string language, bool updateCheck)
+        public void WriteConfig(float gain, bool enabled, string inputId, string outputId, bool unlockLimit, List<EqBand> eqBands, float noiseGateThreshold, float limiterThreshold, bool limiterEnabled, bool flatMode, string lastPresetName, string lastDeviceProfileName, string language, bool updateCheck)
         {
             try
             {
@@ -154,6 +174,7 @@ namespace EasyMICBooster
                 sb.AppendLine($"LimiterEnabled={( limiterEnabled ? "1" : "0" )}");
                 sb.AppendLine($"FlatMode={( flatMode ? "1" : "0" )}");
                 sb.AppendLine($"LastPreset={lastPresetName}");
+                sb.AppendLine($"LastDeviceProfile={lastDeviceProfileName}");
                 sb.AppendLine($"Language={language}");
                 sb.AppendLine($"UpdateCheck={( updateCheck ? "1" : "0" )}");
 
@@ -161,7 +182,7 @@ namespace EasyMICBooster
             }
             catch (Exception) { }
         }
-        
+
         // Preset Methods
         public List<Preset> LoadPresets()
         {
@@ -169,7 +190,7 @@ namespace EasyMICBooster
             try
             {
                 if (!Directory.Exists(_presetsDir)) return list;
-                
+
                 var files = Directory.GetFiles(_presetsDir, "*.json");
                 foreach (var f in files)
                 {
@@ -191,18 +212,18 @@ namespace EasyMICBooster
             try
             {
                 if (!Directory.Exists(_presetsDir)) Directory.CreateDirectory(_presetsDir);
-                
+
                 string safeName = SanitizeFileName(preset.Name);
                 if (string.IsNullOrWhiteSpace(safeName)) safeName = "Default";
-                
+
                 string path = Path.Combine(_presetsDir, safeName + ".json");
-                
+
                 var json = System.Text.Json.JsonSerializer.Serialize(preset, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(path, json);
             }
             catch { }
         }
-        
+
         public void DeletePreset(string name)
         {
             try
@@ -213,7 +234,59 @@ namespace EasyMICBooster
             }
             catch { }
         }
-        
+
+        // Device Profile Methods
+        public List<DeviceProfile> LoadDeviceProfiles()
+        {
+            var list = new List<DeviceProfile>();
+            try
+            {
+                if (!Directory.Exists(_deviceProfilesDir)) return list;
+
+                var files = Directory.GetFiles(_deviceProfilesDir, "*.json");
+                foreach (var f in files)
+                {
+                    try
+                    {
+                        var json = File.ReadAllText(f);
+                        var p = System.Text.Json.JsonSerializer.Deserialize<DeviceProfile>(json);
+                        if (p != null) list.Add(p);
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+            return list;
+        }
+
+        public void SaveDeviceProfile(DeviceProfile profile)
+        {
+            try
+            {
+                if (!Directory.Exists(_deviceProfilesDir)) Directory.CreateDirectory(_deviceProfilesDir);
+
+                string safeName = SanitizeFileName(profile.Name);
+                if (string.IsNullOrWhiteSpace(safeName)) safeName = "Default";
+
+                string path = Path.Combine(_deviceProfilesDir, safeName + ".json");
+
+                var json = System.Text.Json.JsonSerializer.Serialize(profile, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(path, json);
+            }
+            catch { }
+        }
+
+        public void DeleteDeviceProfile(string name)
+        {
+            try
+            {
+                string safeName = SanitizeFileName(name);
+                string path = Path.Combine(_deviceProfilesDir, safeName + ".json");
+                if (File.Exists(path)) File.Delete(path);
+            }
+            catch { }
+        }
+
         private string SanitizeFileName(string name)
         {
             var invalid = Path.GetInvalidFileNameChars();

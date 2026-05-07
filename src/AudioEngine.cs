@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Threading;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
@@ -32,7 +33,14 @@ namespace EasyMICBooster
         private bool _limiterEnabled = false;
         
         private bool _isRunning;
-        
+
+        // Stream health monitoring
+        private Timer? _watchdogTimer;
+        private long _lastDataTicks;
+        private bool _isFaulted;
+
+        public event EventHandler<string>? StreamFaulted;
+
         // FFT State
         private const int FftLength = 2048; // Power of 2
         private Complex[] _fftBuffer = new Complex[FftLength];
@@ -116,12 +124,17 @@ namespace EasyMICBooster
                 IWaveProvider playbackProvider = _metering.ToWaveProvider16(); // Use metering provider
 
                 _capture.DataAvailable += OnDataAvailable;
+                _capture.RecordingStopped += OnRecordingStopped;
                 _render.Init(playbackProvider);
+                _render.PlaybackStopped += OnPlaybackStopped;
 
                 _capture.StartRecording();
                 _render.Play();
-                
+
                 _isRunning = true;
+                _isFaulted = false;
+                Interlocked.Exchange(ref _lastDataTicks, DateTime.UtcNow.Ticks);
+                _watchdogTimer = new Timer(WatchdogCallback, null, 5000, 3000);
             }
             catch (Exception ex)
             {
@@ -133,6 +146,11 @@ namespace EasyMICBooster
         public void Stop()
         {
             _isRunning = false;
+            _isFaulted = false;
+
+            // Dispose watchdog first to prevent callbacks during teardown
+            _watchdogTimer?.Dispose();
+            _watchdogTimer = null;
 
             if (_metering != null)
             {
@@ -143,14 +161,16 @@ namespace EasyMICBooster
             if (_capture != null)
             {
                 _capture.DataAvailable -= OnDataAvailable;
-                _capture.StopRecording();
+                _capture.RecordingStopped -= OnRecordingStopped;
+                try { _capture.StopRecording(); } catch { /* COMException after sleep */ }
                 _capture.Dispose();
                 _capture = null;
             }
 
             if (_render != null)
             {
-                _render.Stop();
+                _render.PlaybackStopped -= OnPlaybackStopped;
+                try { _render.Stop(); } catch { /* COMException after sleep */ }
                 _render.Dispose();
                 _render = null;
             }
@@ -207,6 +227,7 @@ namespace EasyMICBooster
 
         private void OnDataAvailable(object? sender, WaveInEventArgs e)
         {
+            Interlocked.Exchange(ref _lastDataTicks, DateTime.UtcNow.Ticks);
             if (_buffer == null) return;
 
             // Simple Drift Correction
@@ -223,7 +244,39 @@ namespace EasyMICBooster
             _buffer.AddSamples(e.Buffer, 0, e.BytesRecorded);
         }
 
+        private void OnRecordingStopped(object? sender, StoppedEventArgs e)
+        {
+            if (!_isRunning) return;
+            RaiseFault(e.Exception != null
+                ? $"Recording stopped: {e.Exception.Message}"
+                : "Recording stopped unexpectedly");
+        }
 
+        private void OnPlaybackStopped(object? sender, StoppedEventArgs e)
+        {
+            if (!_isRunning) return;
+            RaiseFault(e.Exception != null
+                ? $"Playback stopped: {e.Exception.Message}"
+                : "Playback stopped unexpectedly");
+        }
+
+        private void WatchdogCallback(object? state)
+        {
+            if (!_isRunning || _isFaulted) return;
+            long last = Interlocked.Read(ref _lastDataTicks);
+            double silentSeconds = (DateTime.UtcNow.Ticks - last) / (double)TimeSpan.TicksPerSecond;
+            if (silentSeconds > 3.0)
+            {
+                RaiseFault($"No audio data for {silentSeconds:F1}s");
+            }
+        }
+
+        private void RaiseFault(string reason)
+        {
+            if (_isFaulted) return;
+            _isFaulted = true;
+            StreamFaulted?.Invoke(this, reason);
+        }
 
         private void PerformFft()
         {

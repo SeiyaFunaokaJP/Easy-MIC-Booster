@@ -12,3 +12,12 @@ src/bin/*
 *.suo
 *.userprefs
 *.lock.json
+
+# AI assistants
+.claude/
+.cursor/
+.aider*
+.github/copilot/
+.continue/
+.windsurf/
+CLAUDE.local.md

@@ -67,7 +67,30 @@
                 <Border x:Name="OutputDeviceBorder" BorderBrush="#555555" BorderThickness="1" CornerRadius="3">
                     <ComboBox x:Name="OutputDeviceCombo" Height="30" DisplayMemberPath="FriendlyName" SelectionChanged="Device_SelectionChanged" BorderThickness="0"/>
                 </Border>
-                <Button Content="{loc:Tr Btn_Refresh}" Click="RefreshDevices_Click" Margin="0,12,0,0" Height="30" FontSize="12" Padding="10,0"/>
+
+                <!-- Device Profile (input/output combination) -->
+                <TextBlock Text="{loc:Tr Label_DeviceProfile}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,12,0,4"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ComboBox x:Name="DeviceProfileCombo" Grid.Column="0" Height="28" IsEditable="True" DisplayMemberPath="Name" SelectionChanged="DeviceProfile_SelectionChanged"/>
+                    <Button Grid.Column="1" Content="{loc:Tr Btn_SaveDeviceProfile}" Margin="8,0,0,0" Click="SaveDeviceProfile_Click" Padding="8,0" Height="28" FontSize="11"/>
+                    <Button Grid.Column="2" Content="🗑" Width="28" Height="28" Margin="6,0,0,0" Click="DeleteDeviceProfile_Click" ToolTip="{loc:Tr Tip_DeleteDeviceProfile}" Background="#FF4444" FontSize="11"/>
+                </Grid>
+
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0" Content="{loc:Tr Btn_Refresh}" Click="RefreshDevices_Click" Height="30" FontSize="12" Padding="10,0"/>
+                    <Button Grid.Column="1" Content="{loc:Tr Btn_OpenConfigFolder}" Click="OpenConfigFolder_Click" Margin="8,0,0,0" Height="30" FontSize="11" Padding="10,0" Background="#3F3F5A" Foreground="{StaticResource TextPrimaryBrush}" BorderThickness="0" Cursor="Hand">
+                        <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></Button.Resources>
+                    </Button>
+                </Grid>
             </StackPanel>
         </Border>
         
