@@ -55,6 +55,11 @@ Japanese version: **<https://seiyafunaokajp.github.io/Easy-MIC-Booster/ja/>**
 
 This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for the full text.
 
+Released binaries are self-contained and bundle the .NET 8 Desktop Runtime
+together with third-party libraries. Their copyright notices and license
+terms are reproduced in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt),
+which is also shipped inside the release ZIPs.
+
 ## References
 
 - [NAudio](https://github.com/naudio/NAudio) — .NET audio library used for WASAPI capture and rendering

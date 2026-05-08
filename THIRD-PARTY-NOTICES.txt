@@ -1,0 +1,78 @@
+================================================================================
+EasyMICBooster - Third-Party Notices
+================================================================================
+
+This application is distributed as a self-contained .NET application and
+includes binaries from the following third-party components. Their copyright
+notices and license terms are reproduced below as required by their licenses.
+
+The full text of EasyMICBooster's own license is provided in the LICENSE file.
+
+--------------------------------------------------------------------------------
+1. .NET Runtime / Windows Desktop Runtime (CoreCLR, BCL)
+--------------------------------------------------------------------------------
+Copyright (c) .NET Foundation and Contributors
+Project: https://github.com/dotnet/runtime
+License: MIT License
+
+--------------------------------------------------------------------------------
+2. Windows Presentation Foundation (WPF)
+--------------------------------------------------------------------------------
+Copyright (c) .NET Foundation and Contributors
+Project: https://github.com/dotnet/wpf
+License: MIT License
+
+--------------------------------------------------------------------------------
+3. NAudio 2.2.1
+--------------------------------------------------------------------------------
+Copyright (c) Mark Heath and contributors
+Project: https://github.com/naudio/NAudio
+License: MIT License
+
+--------------------------------------------------------------------------------
+4. Hardcodet.NotifyIcon.Wpf 1.1.0
+--------------------------------------------------------------------------------
+Copyright (c) Philipp Sumi (hardcodet.net)
+Project: https://github.com/hardcodet/wpf-notifyicon
+License: The Code Project Open License (CPOL) 1.02
+        Full text: https://www.codeproject.com/info/cpol10.aspx
+
+================================================================================
+MIT License (applies to items 1, 2, 3 above)
+================================================================================
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+The Code Project Open License (CPOL) 1.02 - Summary (applies to item 4)
+================================================================================
+
+Hardcodet.NotifyIcon.Wpf is licensed under CPOL 1.02. The license permits
+royalty-free use, modification, and redistribution in source and binary form,
+including in commercial products, subject to the following key conditions:
+
+  - The Work is provided "as-is", without warranty of any kind.
+  - You may not remove or alter copyright, patent, trademark, or attribution
+    notices contained within the Work.
+  - You agree not to use the Work for illegal, immoral, or improper purposes.
+  - The full license text is available at:
+        https://www.codeproject.com/info/cpol10.aspx
+
+This summary is provided for convenience only and does not replace the full
+license text linked above.
