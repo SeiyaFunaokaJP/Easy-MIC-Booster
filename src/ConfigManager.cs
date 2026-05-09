@@ -48,7 +48,7 @@ namespace EasyMICBooster
 
             if (!File.Exists(_configPath))
             {
-                WriteConfig(1.0f, true, "", "", false, new List<EqBand>(), -80.0f, 40.0f, false, false, "", "", "en", true);
+                WriteConfig(1.0f, true, "", "", false, new List<EqBand>(), -80.0f, 40.0f, false, false, "", "", "en", true, false);
             }
         }
 
@@ -56,7 +56,7 @@ namespace EasyMICBooster
         public string PresetsDirectory => _presetsDir;
         public string DeviceProfilesDirectory => _deviceProfilesDir;
 
-        public (float gain, bool enabled, string inputId, string outputId, bool unlockLimit, List<EqBand> eqBands, float noiseGateThreshold, float limiterThreshold, bool limiterEnabled, bool flatMode, string lastPresetName, string lastDeviceProfileName, string language, bool updateCheck) ReadConfig()
+        public (float gain, bool enabled, string inputId, string outputId, bool unlockLimit, List<EqBand> eqBands, float noiseGateThreshold, float limiterThreshold, bool limiterEnabled, bool flatMode, string lastPresetName, string lastDeviceProfileName, string language, bool updateCheck, bool noiseSuppression) ReadConfig()
         {
             float gain = 1.0f;
             bool enabled = true;
@@ -72,12 +72,13 @@ namespace EasyMICBooster
             string lastDeviceProfileName = "";
             string language = "en";
             bool updateCheck = true;
+            bool noiseSuppression = false;
 
             try
             {
                 if (!File.Exists(_configPath))
                 {
-                    return (gain, enabled, inputId, outputId, unlockLimit, eqBands, noiseGateThreshold, limiterThreshold, limiterEnabled, flatMode, lastPresetName, lastDeviceProfileName, language, updateCheck);
+                    return (gain, enabled, inputId, outputId, unlockLimit, eqBands, noiseGateThreshold, limiterThreshold, limiterEnabled, flatMode, lastPresetName, lastDeviceProfileName, language, updateCheck, noiseSuppression);
                 }
 
                 var lines = File.ReadAllLines(_configPath);
@@ -150,14 +151,18 @@ namespace EasyMICBooster
                     {
                         updateCheck = trimmed.Substring(12) == "1";
                     }
+                    else if (trimmed.StartsWith("NoiseSuppression="))
+                    {
+                        noiseSuppression = trimmed.Substring(17) == "1";
+                    }
                 }
             }
             catch (Exception) { }
 
-            return (gain, enabled, inputId, outputId, unlockLimit, eqBands, noiseGateThreshold, limiterThreshold, limiterEnabled, flatMode, lastPresetName, lastDeviceProfileName, language, updateCheck);
+            return (gain, enabled, inputId, outputId, unlockLimit, eqBands, noiseGateThreshold, limiterThreshold, limiterEnabled, flatMode, lastPresetName, lastDeviceProfileName, language, updateCheck, noiseSuppression);
         }
 
-        public void WriteConfig(float gain, bool enabled, string inputId, string outputId, bool unlockLimit, List<EqBand> eqBands, float noiseGateThreshold, float limiterThreshold, bool limiterEnabled, bool flatMode, string lastPresetName, string lastDeviceProfileName, string language, bool updateCheck)
+        public void WriteConfig(float gain, bool enabled, string inputId, string outputId, bool unlockLimit, List<EqBand> eqBands, float noiseGateThreshold, float limiterThreshold, bool limiterEnabled, bool flatMode, string lastPresetName, string lastDeviceProfileName, string language, bool updateCheck, bool noiseSuppression)
         {
             try
             {
@@ -177,6 +182,7 @@ namespace EasyMICBooster
                 sb.AppendLine($"LastDeviceProfile={lastDeviceProfileName}");
                 sb.AppendLine($"Language={language}");
                 sb.AppendLine($"UpdateCheck={( updateCheck ? "1" : "0" )}");
+                sb.AppendLine($"NoiseSuppression={( noiseSuppression ? "1" : "0" )}");
 
                 File.WriteAllText(_configPath, sb.ToString());
             }

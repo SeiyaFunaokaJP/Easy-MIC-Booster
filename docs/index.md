@@ -9,7 +9,7 @@ nav_order: 1
 Microphone gain amplification & high-quality audio processing for Windows.
 {: .fs-6 .fw-300 }
 
-Captures microphone input via NAudio, processes it through Noise Gate, Equalizer, and Limiter, and routes it to a virtual audio device such as VB-CABLE.
+Captures microphone input via NAudio, processes it through AI Noise Suppression (RNNoise), Equalizer, Noise Gate, and Limiter, and routes it to a virtual audio device such as VB-CABLE.
 
 [Get Started](user-guide){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [GitHub](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster){: .btn .fs-5 .mb-4 .mb-md-0 }
@@ -21,7 +21,8 @@ Captures microphone input via NAudio, processes it through Noise Gate, Equalizer
 ## Key Features
 
 - **Software Amplifier** -- eliminates microphone gain shortage at the system level
-- **Noise Gate** -- cuts ambient noise and keyboard typing sounds
+- **AI Noise Suppression** -- RNNoise-based removal of fans, keystrokes, and other background noise even while you speak
+- **Noise Gate** -- mutes the channel between phrases for completely silent gaps
 - **Parametric Equalizer** -- visual graph editing with savable presets
 - **Limiter** -- prevents clipping from sudden loud noises
 - **Bilingual UI** -- English / Japanese
@@ -36,7 +37,7 @@ Microphone Input
  NAudio Capture (PCM)
        │
        ▼
- DSP Chain (Noise Gate → Equalizer → Limiter → Gain)
+ DSP Chain (RNNoise → Equalizer → Gain → Noise Gate → Limiter)
        │
        ▼
  Virtual Audio Device (VB-CABLE Input)

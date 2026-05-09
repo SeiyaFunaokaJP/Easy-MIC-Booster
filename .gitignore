@@ -2,7 +2,13 @@
 build/*
 !build/Directory.Build.props
 !build/*.bat
+!build/*.ps1
 src/bin/*
+
+# RNNoise: source clone is build-cache. The DLLs under native/runtimes/ are
+# committed to the repo so a clean clone produces a complete release without
+# requiring contributors to set up MSVC.
+build/rnnoise-src/
 
 # Visual Studio & .NET Standard Ignores
 .vs/

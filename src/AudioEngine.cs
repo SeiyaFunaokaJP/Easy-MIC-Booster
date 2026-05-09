@@ -16,6 +16,7 @@ namespace EasyMICBooster
         private BufferedWaveProvider? _buffer;
         
         // DSP Chain
+        private RNNoiseSampleProvider? _rnnoise;
         private EqualizerSampleProvider? _equalizer;
         private NoiseGateSampleProvider? _noiseGate;
         private LimiterSampleProvider? _limiter;
@@ -31,6 +32,7 @@ namespace EasyMICBooster
         private float _noiseGateThreshold = 0.0f;
         private float _limiterThreshold = 40.0f; // Default high
         private bool _limiterEnabled = false;
+        private bool _noiseSuppressionEnabled = false;
         
         private bool _isRunning;
 
@@ -97,24 +99,42 @@ namespace EasyMICBooster
                 // 3. Build DSP Chain
                 ISampleProvider source = _buffer.ToSampleProvider();
 
-                //   a. Equalizer (First in chain)
-                _equalizer = new EqualizerSampleProvider(source);
+                //   Force chain to 48kHz mono so RNNoise can sit in line and so all
+                //   downstream DSP runs in a consistent format. WasapiOut (shared mode)
+                //   handles re-resampling to whatever the output device wants.
+                ISampleProvider mono = source.WaveFormat.Channels switch
+                {
+                    1 => source,
+                    2 => new NAudio.Wave.SampleProviders.StereoToMonoSampleProvider(source),
+                    _ => new NAudio.Wave.SampleProviders.MultiplexingSampleProvider(new[] { source }, 1),
+                };
+                ISampleProvider chainSource = mono.WaveFormat.SampleRate == RNNoiseInterop.SampleRate
+                    ? mono
+                    : new NAudio.Wave.SampleProviders.WdlResamplingSampleProvider(mono, RNNoiseInterop.SampleRate);
+
+                //   a. Noise Suppression (RNNoise) — runs before EQ so the network sees
+                //      the un-EQ'd spectrum it was trained on.
+                _rnnoise = new RNNoiseSampleProvider(chainSource);
+                _rnnoise.Enabled = _noiseSuppressionEnabled;
+
+                //   b. Equalizer
+                _equalizer = new EqualizerSampleProvider(_rnnoise);
                 // Initial update (Flat) is done in constructor
 
-                //   b. Gain (Boost next)
+                //   c. Gain (Boost next)
                 _volumeProvider = new VolumeSampleProvider(_equalizer);
                 _volumeProvider.Volume = _gain;
-                
-                //   c. Noise Gate
+
+                //   d. Noise Gate (residual silence between phrases)
                 _noiseGate = new NoiseGateSampleProvider(_volumeProvider);
                 _noiseGate.Threshold = _noiseGateThreshold;
                 
-                //   d. Limiter (Soft limit output level)
+                //   e. Limiter (Soft limit output level)
                 _limiter = new LimiterSampleProvider(_noiseGate);
                 _limiter.ThresholdDb = _limiterThreshold;
                 _limiter.Enabled = _limiterEnabled;
-                
-                //   e. Metering (Final Tap for Visualization)
+
+                //   f. Metering (Final Tap for Visualization)
                 _metering = new MeteringSampleProvider(_limiter);
                 _metering.StreamVolume += OnStreamVolume;
                 
@@ -180,6 +200,8 @@ namespace EasyMICBooster
             _noiseGate = null;
             _limiter = null;
             _volumeProvider = null;
+            _rnnoise?.Dispose();
+            _rnnoise = null;
         }
 
         public void UpdateParametricEq(float volumeDb, List<EqBand> bands)
@@ -222,6 +244,17 @@ namespace EasyMICBooster
             if (_limiter != null)
             {
                 _limiter.Enabled = enabled;
+            }
+        }
+
+        public bool IsNoiseSuppressionAvailable => RNNoiseInterop.IsAvailable;
+
+        public void SetNoiseSuppressionEnabled(bool enabled)
+        {
+            _noiseSuppressionEnabled = enabled;
+            if (_rnnoise != null)
+            {
+                _rnnoise.Enabled = enabled;
             }
         }
 

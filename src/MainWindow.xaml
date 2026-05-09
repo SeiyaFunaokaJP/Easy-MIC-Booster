@@ -228,6 +228,47 @@
                     </Grid>
                 </Border>
                 
+                <!-- AI Noise Suppression Toggle -->
+                <Grid Margin="0,8,0,2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{loc:Tr Group_NoiseSuppression}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                    <ToggleButton x:Name="NoiseSuppressionToggle" Grid.Column="1"
+                                  IsChecked="False"
+                                  Width="120" Height="26"
+                                  Checked="NoiseSuppressionToggle_Changed" Unchecked="NoiseSuppressionToggle_Changed"
+                                  FontWeight="Bold">
+                        <ToggleButton.Template>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border x:Name="border" CornerRadius="4" Background="{StaticResource SurfaceBrush}" BorderBrush="#555" BorderThickness="1">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Ellipse x:Name="indicator" Width="10" Height="10" Margin="0,0,8,0" Fill="#FF4444"/>
+                                        <TextBlock x:Name="text" Text="{loc:Tr Btn_ToggleNoiseSuppression_Off}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="11"/>
+                                    </StackPanel>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsChecked" Value="True">
+                                        <Setter TargetName="border" Property="Background" Value="#101010"/>
+                                        <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                        <Setter TargetName="indicator" Property="Fill" Value="#00FF00"/>
+                                        <Setter TargetName="text" Property="Text" Value="{loc:Tr Btn_ToggleNoiseSuppression_On}"/>
+                                        <Setter TargetName="text" Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                    <Trigger Property="IsEnabled" Value="False">
+                                        <Setter TargetName="border" Property="Opacity" Value="0.5"/>
+                                    </Trigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="border" Property="Background" Value="#444"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </ToggleButton.Template>
+                    </ToggleButton>
+                </Grid>
+                <TextBlock x:Name="NoiseSuppressionHelp" Text="{loc:Tr Help_NoiseSuppression}" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+
                 <!-- Noise Gate Control -->
                 <TextBlock Text="{loc:Tr Group_NoiseGate}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,4"/>
                 <Grid>

@@ -120,6 +120,125 @@ namespace EasyMICBooster
         }
     }
 
+    /// <summary>
+    /// RNNoise-based AI noise suppression. Removes constant AND non-stationary
+    /// background noise (PC fans, keyboard clicks, breathing) while preserving voice.
+    ///
+    /// Requires 48kHz mono float input. RNNoise expects float samples scaled to
+    /// the int16 range [-32768, 32767], so the provider rescales internally.
+    ///
+    /// Adds ~10ms (one 480-sample frame) of latency when enabled.
+    /// Falls back to passthrough if rnnoise.dll is missing or fails to load.
+    /// </summary>
+    public class RNNoiseSampleProvider : ISampleProvider, IDisposable
+    {
+        private readonly ISampleProvider _source;
+        private readonly object _lock = new object();
+        private IntPtr _state;
+        private volatile bool _enabled;
+        private bool _available;
+        private bool _disposed;
+
+        private const int FrameSize = RNNoiseInterop.FrameSize;
+        private const float Scale = 32768.0f;
+
+        private readonly float[] _frameIn = new float[FrameSize];
+        private readonly float[] _frameOut = new float[FrameSize];
+        private int _frameInCount;
+
+        private readonly float[] _readyOut = new float[FrameSize];
+        private int _readyOutHead;
+        private int _readyOutCount;
+
+        public RNNoiseSampleProvider(ISampleProvider source)
+        {
+            if (source.WaveFormat.SampleRate != RNNoiseInterop.SampleRate || source.WaveFormat.Channels != 1)
+                throw new ArgumentException(
+                    $"RNNoiseSampleProvider requires 48kHz mono. Got {source.WaveFormat.SampleRate}Hz {source.WaveFormat.Channels}ch.");
+
+            _source = source;
+            _available = RNNoiseInterop.IsAvailable;
+            if (_available)
+            {
+                try
+                {
+                    _state = RNNoiseInterop.Create(IntPtr.Zero);
+                    if (_state == IntPtr.Zero) _available = false;
+                }
+                catch
+                {
+                    _available = false;
+                }
+            }
+        }
+
+        public WaveFormat WaveFormat => _source.WaveFormat;
+
+        public bool Available => _available;
+
+        public bool Enabled
+        {
+            get => _enabled;
+            set => _enabled = value && _available;
+        }
+
+        public int Read(float[] buffer, int offset, int count)
+        {
+            if (!_enabled || !_available || _disposed)
+            {
+                return _source.Read(buffer, offset, count);
+            }
+
+            lock (_lock)
+            {
+                int written = 0;
+
+                while (written < count)
+                {
+                    if (_readyOutCount > 0)
+                    {
+                        int toDrain = Math.Min(_readyOutCount, count - written);
+                        Array.Copy(_readyOut, _readyOutHead, buffer, offset + written, toDrain);
+                        _readyOutHead += toDrain;
+                        _readyOutCount -= toDrain;
+                        written += toDrain;
+                        if (written >= count) break;
+                    }
+
+                    int needed = FrameSize - _frameInCount;
+                    int got = _source.Read(_frameIn, _frameInCount, needed);
+                    if (got <= 0) return written;
+                    _frameInCount += got;
+                    if (_frameInCount < FrameSize) continue;
+
+                    for (int i = 0; i < FrameSize; i++) _frameIn[i] *= Scale;
+                    RNNoiseInterop.ProcessFrame(_state, _frameOut, _frameIn);
+                    for (int i = 0; i < FrameSize; i++) _readyOut[i] = _frameOut[i] / Scale;
+
+                    _readyOutHead = 0;
+                    _readyOutCount = FrameSize;
+                    _frameInCount = 0;
+                }
+
+                return written;
+            }
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            lock (_lock)
+            {
+                if (_state != IntPtr.Zero)
+                {
+                    try { RNNoiseInterop.Destroy(_state); } catch { }
+                    _state = IntPtr.Zero;
+                }
+            }
+        }
+    }
+
     public class MeteringSampleProvider : ISampleProvider
     {
         private readonly ISampleProvider _source;

@@ -33,13 +33,35 @@ Easy-MIC-Booster/
 │   ├── images/
 │   ├── ja/                    日本語版
 │   └── *.md                   英語版
+├── native/                    同梱ネイティブバイナリ
+│   └── runtimes/
+│       ├── win-x64/native/    x64 用 rnnoise.dll
+│       └── win-x86/native/    x86 用 rnnoise.dll
 └── build/                     ビルドスクリプトと成果物
     ├── build_debug.bat        デバッグビルド
     ├── build_release.bat      リリースビルド
+    ├── build_rnnoise.ps1      xiph/rnnoise から rnnoise.dll をビルド
     ├── Directory.Build.props  MSBuild 共通設定
     ├── bin/                   ビルド出力 (x64 / x86)
     └── zip/                   配布用パッケージ
 ```
+
+## ネイティブ依存ライブラリ
+
+AI ノイズ抑制機能は P/Invoke 経由で [RNNoise](https://github.com/xiph/rnnoise)
+（BSD-3-Clause）を呼び出します。`native/runtimes/<rid>/native/` 以下にビルド済み
+`rnnoise.dll` がコミットされており、MSVC を用意しなくてもクローン直後にそのまま
+リリースをビルドできます。ソースから再ビルドする場合は次のスクリプトを実行します。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File build\build_rnnoise.ps1
+```
+
+スクリプトは `xiph/rnnoise` を clone し、`media.xiph.org` から学習済みモデル
+（`model_version` のハッシュで固定）を取得して、`cl.exe /LD /MT /O2` で
+シングル DLL ビルドを行います。Visual Studio 2019/2022 の「C++ によるデスクトップ開発」
+ワークロードが必要です。`build_release.bat` は DLL が不在の場合に自動で
+このスクリプトを起動します。
 
 ## ビルド方法
 

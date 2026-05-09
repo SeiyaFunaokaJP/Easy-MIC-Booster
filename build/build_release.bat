@@ -9,6 +9,24 @@ REM Read version from version.txt in root (parent dir)
 set /p VERSION=<..\version.txt
 echo Version: %VERSION%
 
+REM ---------------------------------------------------------
+REM Build native rnnoise.dll for both architectures if missing.
+REM (DLLs are gitignored; this regenerates them from source.)
+REM ---------------------------------------------------------
+if not exist "..\native\runtimes\win-x64\native\rnnoise.dll" goto BUILD_RNNOISE
+if not exist "..\native\runtimes\win-x86\native\rnnoise.dll" goto BUILD_RNNOISE
+goto SKIP_RNNOISE
+:BUILD_RNNOISE
+echo.
+echo Building rnnoise.dll (x64 and x86)...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build_rnnoise.ps1"
+if %ERRORLEVEL% NEQ 0 (
+    echo rnnoise build failed!
+    pause
+    exit /b %ERRORLEVEL%
+)
+:SKIP_RNNOISE
+
 REM Define build directories
 set BUILD_DIR=%~dp0
 set BIN_DIR=%BUILD_DIR%bin

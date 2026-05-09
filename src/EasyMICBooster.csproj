@@ -45,7 +45,28 @@
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </Content>
     <Resource Include="Resources\App.ico" />
-  </ItemGroup>  
+  </ItemGroup>
+
+  <!--
+    RNNoise native binary. Optional: if rnnoise.dll is missing, the app still runs
+    and the AI Noise Suppression toggle is disabled at runtime. See
+    native/runtimes/README.md for how to obtain or build the DLL.
+  -->
+  <ItemGroup>
+    <Content Include="..\native\runtimes\win-x64\native\rnnoise.dll"
+             Condition="(('$(RuntimeIdentifier)' == 'win-x64') OR ('$(RuntimeIdentifier)' == '')) AND Exists('..\native\runtimes\win-x64\native\rnnoise.dll')">
+      <Link>rnnoise.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </Content>
+    <Content Include="..\native\runtimes\win-x86\native\rnnoise.dll"
+             Condition="'$(RuntimeIdentifier)' == 'win-x86' AND Exists('..\native\runtimes\win-x86\native\rnnoise.dll')">
+      <Link>rnnoise.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
   <PropertyGroup>
     <ApplicationIcon>Resources\App.ico</ApplicationIcon>
   </PropertyGroup>

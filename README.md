@@ -10,6 +10,7 @@ Captures microphone input via NAudio (WASAPI), applies a DSP chain — Noise Gat
 | Module | Description |
 |--------|-------------|
 | Software Amplifier | Boosts microphone level beyond the OS gain limit |
+| AI Noise Suppression | RNNoise-based removal of fans, keystrokes, and other background noise even while you speak (optional, requires `rnnoise.dll` — see [native/runtimes/README.md](native/runtimes/README.md)) |
 | Noise Gate | Suppresses ambient noise, keyboard sounds, and breath |
 | Equalizer | Multi-band EQ for tailoring vocal tone |
 | Limiter | Prevents clipping at high gain settings |

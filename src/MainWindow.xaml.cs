@@ -96,7 +96,7 @@ namespace EasyMICBooster
 
         private void LoadSettings()
         {
-            var (gain, enabled, inputId, outputId, unlockLimit, bands, noiseGate, limiterThreshold, limiterEnabled, flatMode, lastPresetName, lastDeviceProfileName, language, updateCheck) = _configManager.ReadConfig();
+            var (gain, enabled, inputId, outputId, unlockLimit, bands, noiseGate, limiterThreshold, limiterEnabled, flatMode, lastPresetName, lastDeviceProfileName, language, updateCheck, noiseSuppression) = _configManager.ReadConfig();
 
             // Enforce Defaults if config is empty logic can be handled here if needed, 
             // but config manager already provides defaults.
@@ -125,6 +125,19 @@ namespace EasyMICBooster
             
             // Boost Toggle
             if (BoostToggle != null) BoostToggle.IsChecked = enabled;
+
+            // Noise Suppression Toggle
+            if (NoiseSuppressionToggle != null)
+            {
+                bool available = _audioEngine?.IsNoiseSuppressionAvailable ?? false;
+                NoiseSuppressionToggle.IsEnabled = available;
+                NoiseSuppressionToggle.IsChecked = noiseSuppression && available;
+                if (NoiseSuppressionHelp != null && !available)
+                {
+                    NoiseSuppressionHelp.Text = Localization.LocalizationManager.Instance.GetString("Help_NoiseSuppression_Unavailable");
+                }
+                _audioEngine?.SetNoiseSuppressionEnabled(noiseSuppression && available);
+            }
             
             // Startup Check
             StartupCheckbox.IsChecked = IsStartupEnabled();
@@ -700,8 +713,8 @@ namespace EasyMICBooster
                 for (double x = ScreenPaddingX; x <= w - ScreenPaddingX; x += 4)
                 {
                     double f = XToFreq(x, w);
-                    // 44100Hz / 2048 = 21.5Hz bin
-                    int binIndex = (int)(f / 21.53);
+                    // 48000Hz / 2048 = 23.4375Hz/bin (DSP chain runs at 48kHz)
+                    int binIndex = (int)(f / 23.4375);
                     
                     if (binIndex >= 0 && binIndex < _currentSpectrum.Length)
                     {
@@ -881,6 +894,13 @@ namespace EasyMICBooster
              if (_isInitializing) return;
              UpdateAudioEq();
              SaveSettings();
+        }
+
+        private void NoiseSuppressionToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isInitializing) return;
+            _audioEngine?.SetNoiseSuppressionEnabled(NoiseSuppressionToggle.IsChecked == true);
+            SaveSettings();
         }
 
         // Preset Handlers
@@ -1192,7 +1212,8 @@ namespace EasyMICBooster
                                      PresetCombo.Text,
                                      lastDeviceProfileName,
                                      Localization.LocalizationManager.Instance.CurrentLanguage,
-                                     true); // Always enabled
+                                     true, // Always enabled
+                                     NoiseSuppressionToggle?.IsChecked == true);
             
             // Clear Preset Name on user edit logic REMOVED (User request V6.1)
         }
