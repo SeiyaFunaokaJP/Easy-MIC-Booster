@@ -54,6 +54,22 @@ namespace EasyMICBooster
         private System.Windows.Threading.DispatcherTimer? _restartTimer;
         private bool _isShuttingDown = false;
 
+        // Device persistence & hot-plug
+        // _boostDesired keeps the user's intended boost state so that forcing the toggle
+        // off while a device is missing never overwrites the saved setting.
+        private bool _boostDesired = true;
+        private bool _suppressBoostSave = false;
+        // Last user-chosen device IDs; kept even while the device is disconnected so the
+        // selection survives a boot with the mic powered off.
+        private string _lastInputId = "";
+        private string _lastOutputId = "";
+        private string? _runningInputId;
+        private string? _runningOutputId;
+        private bool _isRefreshingDevices = false;
+        private MMDeviceEnumerator? _notificationEnumerator;
+        private DeviceNotificationClient? _notificationClient;
+        private System.Windows.Threading.DispatcherTimer? _deviceChangeTimer;
+
         public MainWindow()
         {
             _isInitializing = true;
@@ -63,6 +79,8 @@ namespace EasyMICBooster
             this.Title = $"Easy MIC Booster {VersionManager.DisplayVersion}";
             
             _configManager = new ConfigManager();
+            // Load language before building the device list so the default-device entry is localized
+            Localization.LocalizationManager.Instance.LoadLanguage(_configManager.ReadConfig().language);
             _audioEngine = new AudioEngine();
             _audioEngine.PeakLevelReceived += OnPeakLevelReceived;
             _audioEngine.FftDataReceived += OnFftDataReceived;
@@ -79,17 +97,19 @@ namespace EasyMICBooster
 
             UpdateDeviceValidation();
             StartAudio();
+
+            // Watch for device arrival/removal and default-device changes (hot-plug support)
+            _notificationClient = new DeviceNotificationClient(OnDeviceNotification);
+            _notificationEnumerator = new MMDeviceEnumerator();
+            _notificationEnumerator.RegisterEndpointNotificationCallback(_notificationClient);
         }
 
         private void LoadDevices()
         {
             try
             {
-                var inputDevices = AudioEngine.GetInputDevices().ToList();
-                InputDeviceCombo.ItemsSource = inputDevices;
-                var outputDevices = AudioEngine.GetOutputDevices().ToList();
-                OutputDeviceCombo.ItemsSource = outputDevices;
-                // Devices loaded
+                InputDeviceCombo.ItemsSource = DeviceListItem.GetInputList();
+                OutputDeviceCombo.ItemsSource = DeviceListItem.GetOutputList();
             }
             catch (Exception ex) { MessageBox.Show($"デバイス読み込みエラー: {ex.Message}"); }
         }
@@ -124,6 +144,7 @@ namespace EasyMICBooster
             }
             
             // Boost Toggle
+            _boostDesired = enabled;
             if (BoostToggle != null) BoostToggle.IsChecked = enabled;
 
             // Noise Suppression Toggle
@@ -170,25 +191,12 @@ namespace EasyMICBooster
             
             UpdateEqStartEndPoints(); // Ensure 20Hz/20kHz exist and sorted
 
-            // Devices
-            if (!string.IsNullOrEmpty(inputId)) 
-            { 
-                var devices = InputDeviceCombo.ItemsSource as IEnumerable<MMDevice>;
-                if (devices != null)
-                {
-                    var d = devices.FirstOrDefault(x => x.ID == inputId); 
-                    if (d != null) InputDeviceCombo.SelectedItem = d; 
-                }
-            }
-            if (!string.IsNullOrEmpty(outputId)) 
-            { 
-                var devices = OutputDeviceCombo.ItemsSource as IEnumerable<MMDevice>;
-                if (devices != null)
-                {
-                    var d = devices.FirstOrDefault(x => x.ID == outputId); 
-                    if (d != null) OutputDeviceCombo.SelectedItem = d; 
-                }
-            }
+            // Devices — remember the saved IDs even if the device is currently absent,
+            // so it can be re-selected automatically when it comes back.
+            _lastInputId = inputId;
+            _lastOutputId = outputId;
+            SelectDeviceById(InputDeviceCombo, inputId);
+            SelectDeviceById(OutputDeviceCombo, outputId);
 
             // Load Presets
             _presets = _configManager.LoadPresets();
@@ -892,8 +900,10 @@ namespace EasyMICBooster
         private void BoostToggle_Changed(object sender, RoutedEventArgs e)
         {
              if (_isInitializing) return;
+             // Programmatic changes (device lost/restored) must not overwrite the user's intent.
+             if (!_suppressBoostSave) _boostDesired = BoostToggle.IsChecked == true;
              UpdateAudioEq();
-             SaveSettings();
+             if (!_suppressBoostSave) SaveSettings();
         }
 
         private void NoiseSuppressionToggle_Changed(object sender, RoutedEventArgs e)
@@ -1051,24 +1061,8 @@ namespace EasyMICBooster
             _isLoadingDeviceProfile = true;
             try
             {
-                if (!string.IsNullOrEmpty(dp.InputDeviceId))
-                {
-                    var devices = InputDeviceCombo.ItemsSource as IEnumerable<MMDevice>;
-                    if (devices != null)
-                    {
-                        var d = devices.FirstOrDefault(x => x.ID == dp.InputDeviceId);
-                        if (d != null) InputDeviceCombo.SelectedItem = d;
-                    }
-                }
-                if (!string.IsNullOrEmpty(dp.OutputDeviceId))
-                {
-                    var devices = OutputDeviceCombo.ItemsSource as IEnumerable<MMDevice>;
-                    if (devices != null)
-                    {
-                        var d = devices.FirstOrDefault(x => x.ID == dp.OutputDeviceId);
-                        if (d != null) OutputDeviceCombo.SelectedItem = d;
-                    }
-                }
+                SelectDeviceById(InputDeviceCombo, dp.InputDeviceId);
+                SelectDeviceById(OutputDeviceCombo, dp.OutputDeviceId);
             }
             finally
             {
@@ -1088,8 +1082,8 @@ namespace EasyMICBooster
                 return;
             }
 
-            var input = InputDeviceCombo.SelectedItem as MMDevice;
-            var output = OutputDeviceCombo.SelectedItem as MMDevice;
+            var input = InputDeviceCombo.SelectedItem as DeviceListItem;
+            var output = OutputDeviceCombo.SelectedItem as DeviceListItem;
 
             var existing = _deviceProfiles.FirstOrDefault(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
             if (existing != null)
@@ -1100,20 +1094,20 @@ namespace EasyMICBooster
                                           MessageBoxButton.YesNo, MessageBoxImage.Question);
                 if (res != MessageBoxResult.Yes) return;
 
-                existing.InputDeviceId = input?.ID ?? "";
-                existing.OutputDeviceId = output?.ID ?? "";
-                existing.InputDeviceName = input?.FriendlyName ?? "";
-                existing.OutputDeviceName = output?.FriendlyName ?? "";
+                existing.InputDeviceId = input?.Id ?? "";
+                existing.OutputDeviceId = output?.Id ?? "";
+                existing.InputDeviceName = input?.DisplayName ?? "";
+                existing.OutputDeviceName = output?.DisplayName ?? "";
             }
             else
             {
                 var dp = new DeviceProfile
                 {
                     Name = name,
-                    InputDeviceId = input?.ID ?? "",
-                    OutputDeviceId = output?.ID ?? "",
-                    InputDeviceName = input?.FriendlyName ?? "",
-                    OutputDeviceName = output?.FriendlyName ?? ""
+                    InputDeviceId = input?.Id ?? "",
+                    OutputDeviceId = output?.Id ?? "",
+                    InputDeviceName = input?.DisplayName ?? "",
+                    OutputDeviceName = output?.DisplayName ?? ""
                 };
                 _deviceProfiles.Add(dp);
             }
@@ -1197,12 +1191,14 @@ namespace EasyMICBooster
             // Since Preset has it, Config should probably have it too for consistency?
             // For now, Stick to existing Config Write, but pass true for enabled.
             
-            var input = InputDeviceCombo.SelectedItem as MMDevice; 
-            var output = OutputDeviceCombo.SelectedItem as MMDevice; 
+            var input = InputDeviceCombo.SelectedItem as DeviceListItem;
+            var output = OutputDeviceCombo.SelectedItem as DeviceListItem;
 
             string lastDeviceProfileName = (DeviceProfileCombo?.SelectedItem as DeviceProfile)?.Name ?? DeviceProfileCombo?.Text ?? "";
 
-            _configManager.WriteConfig(1.0f, BoostToggle?.IsChecked ?? true, input?.ID ?? "", output?.ID ?? "",
+            // Fall back to the last known IDs / desired boost state so a save that happens
+            // while a device is disconnected never erases the stored selection.
+            _configManager.WriteConfig(1.0f, _boostDesired, input?.Id ?? _lastInputId, output?.Id ?? _lastOutputId,
                                      UnlockLimitCheck.IsChecked == true,
                                      _uiPoints.Select(p => new EqBand { Frequency = (float)p.Freq, Gain = (float)p.Gain, Q = p.Q, Type = p.Type }).ToList(),
                                      (float)NoiseGateSlider.Value,
@@ -1224,6 +1220,7 @@ namespace EasyMICBooster
             if (LanguageCombo.SelectedItem is ComboBoxItem item && item.Tag is string code)
             {
                 Localization.LocalizationManager.Instance.LoadLanguage(code);
+                RefreshDeviceList(); // Re-localize the default-device entry
                 UpdateUpdateStatusUI();
                 SaveSettings();
             }
@@ -1261,74 +1258,135 @@ namespace EasyMICBooster
 
         
 
-        private void Device_SelectionChanged(object sender, SelectionChangedEventArgs e) 
-        { 
-            if(_isInitializing) return; 
+        private void Device_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if(_isInitializing || _isRefreshingDevices) return;
+
+            // Remember explicit selections so they survive disconnects and list refreshes
+            if (InputDeviceCombo.SelectedItem is DeviceListItem input) _lastInputId = input.Id;
+            if (OutputDeviceCombo.SelectedItem is DeviceListItem output) _lastOutputId = output.Id;
+
             UpdateDeviceValidation();
-            
-            // Always restart audio when device changes if both devices are selected
-            var input = InputDeviceCombo.SelectedItem as MMDevice;
-            var output = OutputDeviceCombo.SelectedItem as MMDevice;
-            if (input != null && output != null)
+            StopAudio();
+            StartAudio();
+            SaveSettings();
+        }
+
+        private void UpdateDeviceValidation()
+        {
+            // Validate by resolvability: the default-device entry only counts when
+            // Windows actually has a default endpoint of that flow.
+            bool hasInput = ResolveSelectedDevice(InputDeviceCombo, DataFlow.Capture) != null;
+            bool hasOutput = ResolveSelectedDevice(OutputDeviceCombo, DataFlow.Render) != null;
+            bool isValid = hasInput && hasOutput;
+
+            // Red border for missing devices (using Border wrapper)
+            InputDeviceBorder.BorderBrush = hasInput ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#555555")) : new SolidColorBrush(Colors.Red);
+            InputDeviceBorder.BorderThickness = hasInput ? new Thickness(1) : new Thickness(2);
+
+            OutputDeviceBorder.BorderBrush = hasOutput ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#555555")) : new SolidColorBrush(Colors.Red);
+            OutputDeviceBorder.BorderThickness = hasOutput ? new Thickness(1) : new Thickness(2);
+
+            // Force the toggle off while invalid, restore the user's intent when valid —
+            // without persisting either programmatic change.
+            BoostToggle.IsEnabled = isValid;
+            _suppressBoostSave = true;
+            BoostToggle.IsChecked = isValid && _boostDesired;
+            _suppressBoostSave = false;
+        }
+
+        private void RefreshDevices_Click(object sender, RoutedEventArgs e)
+        {
+            HandleDeviceChange();
+        }
+
+        // Called (debounced) on WASAPI endpoint notifications and manual refresh:
+        // reloads the list, re-selects the remembered devices, and starts/stops/restarts
+        // audio only when the effectively used endpoints changed.
+        private void HandleDeviceChange()
+        {
+            if (_isShuttingDown) return;
+
+            RefreshDeviceList();
+            UpdateDeviceValidation();
+
+            var input = ResolveSelectedDevice(InputDeviceCombo, DataFlow.Capture);
+            var output = ResolveSelectedDevice(OutputDeviceCombo, DataFlow.Render);
+
+            if (input == null || output == null)
+            {
+                if (_audioEngine.IsRunning) StopAudio();
+                return;
+            }
+
+            bool needRestart = !_audioEngine.IsRunning
+                || input.ID != _runningInputId
+                || output.ID != _runningOutputId;
+            if (needRestart)
             {
                 StopAudio();
                 StartAudio();
             }
-            SaveSettings(); 
         }
-        
-        private void UpdateDeviceValidation()
+
+        private void RefreshDeviceList()
         {
-            bool hasInput = InputDeviceCombo.SelectedItem != null;
-            bool hasOutput = OutputDeviceCombo.SelectedItem != null;
-            bool isValid = hasInput && hasOutput;
-            
-            // Red border for missing devices (using Border wrapper)
-            InputDeviceBorder.BorderBrush = hasInput ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#555555")) : new SolidColorBrush(Colors.Red);
-            InputDeviceBorder.BorderThickness = hasInput ? new Thickness(1) : new Thickness(2);
-            
-            OutputDeviceBorder.BorderBrush = hasOutput ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#555555")) : new SolidColorBrush(Colors.Red);
-            OutputDeviceBorder.BorderThickness = hasOutput ? new Thickness(1) : new Thickness(2);
-            
-            // Toggle state based on device selection
-            BoostToggle.IsEnabled = isValid;
-            
-            if (!isValid)
+            _isRefreshingDevices = true;
+            try
             {
-                // Devices not selected: gray indicator, disabled state
-                BoostToggle.IsChecked = false;
+                LoadDevices();
+                SelectDeviceById(InputDeviceCombo, _lastInputId);
+                SelectDeviceById(OutputDeviceCombo, _lastOutputId);
+            }
+            finally
+            {
+                _isRefreshingDevices = false;
             }
         }
-        
-        private void RefreshDevices_Click(object sender, RoutedEventArgs e)
+
+        private void OnDeviceNotification()
         {
-            string? inputId = (InputDeviceCombo.SelectedItem as MMDevice)?.ID;
-            string? outputId = (OutputDeviceCombo.SelectedItem as MMDevice)?.ID;
-
-            LoadDevices();
-
-            ReSelectDevice(InputDeviceCombo, inputId);
-            ReSelectDevice(OutputDeviceCombo, outputId);
-            UpdateDeviceValidation();
+            // WASAPI notifications arrive on an MTA thread and often in bursts
+            // (e.g. Bluetooth registers several endpoints) — debounce on the UI thread.
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (_isShuttingDown) return;
+                if (_deviceChangeTimer == null)
+                {
+                    _deviceChangeTimer = new System.Windows.Threading.DispatcherTimer();
+                    _deviceChangeTimer.Interval = TimeSpan.FromMilliseconds(1000);
+                    _deviceChangeTimer.Tick += (s, e) =>
+                    {
+                        _deviceChangeTimer!.Stop();
+                        HandleDeviceChange();
+                    };
+                }
+                _deviceChangeTimer.Stop();
+                _deviceChangeTimer.Start();
+            });
         }
-        private void StartAudio() { 
-            var i=InputDeviceCombo.SelectedItem as MMDevice; var o=OutputDeviceCombo.SelectedItem as MMDevice; 
-            if(i==null||o==null){ UpdateDeviceValidation(); return;} 
-            if(i.ID==o.ID){MessageBox.Show(Localization.LocalizationManager.Instance.GetString("Msg_Loop"));return;} 
-            
+
+        private MMDevice? ResolveSelectedDevice(ComboBox combo, DataFlow flow)
+        {
+            if (combo.SelectedItem is not DeviceListItem item) return null;
+            return item.IsDefault ? DeviceListItem.ResolveDefault(flow) : item.Device;
+        }
+
+        private void StartAudio() {
+            var i = ResolveSelectedDevice(InputDeviceCombo, DataFlow.Capture);
+            var o = ResolveSelectedDevice(OutputDeviceCombo, DataFlow.Render);
+            if(i==null||o==null){ UpdateDeviceValidation(); return;}
+            if(i.ID==o.ID){MessageBox.Show(Localization.LocalizationManager.Instance.GetString("Msg_Loop"));return;}
+
             UpdateAudioEq(); // Calculates proper gains
-            // Actually UpdateAudioEq calls UpdateGraphicEq which sets _gain on engine. 
-            // But Start() needs initial values.
-            // Let's modify Start() to NOT take bands, but we need intial gain.
-            // We can call Start then UpdateAudioEq. 
-            // Start(i, o, 1.0f, noiseGate); -> Gain defaults to 1.0 then updated.
-            
              // Default gain 1.0 (0dB) to avoid blast if toggle is off but engine applies old state?
              // Actually, pass 0dB initial. UpdateAudioEq will fix it immediately.
             _audioEngine.Start(i,o, 1.0f, (float)NoiseGateSlider.Value);
+            _runningInputId = i.ID;
+            _runningOutputId = o.ID;
             UpdateAudioEq(); // Apply EQ/Volume immediately
         }
-        private void StopAudio() { _audioEngine.Stop(); if(LevelMeter!=null) LevelMeter.Width=0; }
+        private void StopAudio() { _audioEngine.Stop(); _runningInputId = null; _runningOutputId = null; if(LevelMeter!=null) LevelMeter.Width=0; }
 
 
         private void OnPeakLevelReceived(object? s, float v) { Dispatcher.InvokeAsync(()=>{if(LevelMeter!=null&&ActualWidth>0){LevelMeter.MaxWidth=Math.Max(0,ActualWidth-80);LevelMeter.Width=LevelMeter.MaxWidth*v;}}); }
@@ -1395,27 +1453,16 @@ namespace EasyMICBooster
 
             System.Diagnostics.Debug.WriteLine("[AutoRestart] Performing restart...");
 
-            // Remember current device IDs before stopping
-            string? inputId = (InputDeviceCombo.SelectedItem as MMDevice)?.ID;
-            string? outputId = (OutputDeviceCombo.SelectedItem as MMDevice)?.ID;
-
             StopAudio();
-            LoadDevices();
-
-            // Re-select devices from refreshed list
-            ReSelectDevice(InputDeviceCombo, inputId);
-            ReSelectDevice(OutputDeviceCombo, outputId);
-            UpdateDeviceValidation();
-
-            StartAudio();
+            HandleDeviceChange();
         }
 
-        private void ReSelectDevice(ComboBox combo, string? deviceId)
+        private void SelectDeviceById(ComboBox combo, string? deviceId)
         {
             if (string.IsNullOrEmpty(deviceId)) return;
-            var devices = combo.ItemsSource as IEnumerable<MMDevice>;
+            var devices = combo.ItemsSource as IEnumerable<DeviceListItem>;
             if (devices == null) return;
-            var match = devices.FirstOrDefault(d => d.ID == deviceId);
+            var match = devices.FirstOrDefault(d => d.Id == deviceId);
             if (match != null) combo.SelectedItem = match;
         }
         private void StartupCheckbox_Changed(object s, RoutedEventArgs e) { if(!_isInitializing) SetStartup(StartupCheckbox.IsChecked??false); }
@@ -1505,6 +1552,13 @@ namespace EasyMICBooster
             }
             _isShuttingDown = true;
             _restartTimer?.Stop();
+            _deviceChangeTimer?.Stop();
+            if (_notificationEnumerator != null && _notificationClient != null)
+            {
+                try { _notificationEnumerator.UnregisterEndpointNotificationCallback(_notificationClient); } catch { }
+                _notificationEnumerator.Dispose();
+                _notificationEnumerator = null;
+            }
             Microsoft.Win32.SystemEvents.PowerModeChanged -= OnPowerModeChanged;
             _audioEngine?.Dispose();
             base.OnClosing(e);

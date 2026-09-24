@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text.Json;
 
 namespace EasyMICBooster
 {
@@ -52,10 +53,10 @@ namespace EasyMICBooster
         public static string DisplayVersion => $"v{CurrentVersion}";
         
         /// <summary>
-        /// GitHub raw URL for version checking (update with your repository)
+        /// GitHub Releases API URL for the latest published release
         /// </summary>
-        public const string GitHubVersionUrl = "https://raw.githubusercontent.com/SeiyaFunaokaJP/Easy-MIC-Booster/master/version.txt";
-        
+        public const string GitHubLatestReleaseUrl = "https://api.github.com/repos/SeiyaFunaokaJP/Easy-MIC-Booster/releases/latest";
+
         /// <summary>
         /// Checks if a newer version is available on GitHub
         /// </summary>
@@ -67,21 +68,30 @@ namespace EasyMICBooster
                 using var client = new System.Net.Http.HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(5);
                 client.DefaultRequestHeaders.Add("User-Agent", "EasyMICBooster");
-                
-                var response = await client.GetAsync(GitHubVersionUrl);
-                
+                client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
+
+                var response = await client.GetAsync(GitHubLatestReleaseUrl);
+
                 if (!response.IsSuccessStatusCode)
                 {
                     return (false, CurrentVersion, $"HTTP {(int)response.StatusCode}");
                 }
-                
-                string latestVersion = (await response.Content.ReadAsStringAsync()).Trim();
-                
+
+                using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+
+                if (!json.RootElement.TryGetProperty("tag_name", out var tagElement))
+                {
+                    return (false, CurrentVersion, "Invalid version format");
+                }
+
+                // Tags are published as "v1.0.5" — strip the prefix for comparison
+                string latestVersion = (tagElement.GetString() ?? "").Trim().TrimStart('v', 'V');
+
                 if (string.IsNullOrWhiteSpace(latestVersion) || !latestVersion.Contains('.'))
                 {
                     return (false, CurrentVersion, "Invalid version format");
                 }
-                
+
                 bool isNewer = CompareVersions(latestVersion, CurrentVersion) > 0;
                 return (isNewer, latestVersion, null);
             }

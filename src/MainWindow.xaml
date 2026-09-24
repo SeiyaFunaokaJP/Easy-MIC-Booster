@@ -61,11 +61,11 @@
                 <TextBlock Text="{loc:Tr Group_Device}" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,12"/>
                 <TextBlock Text="{loc:Tr Label_Input}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
                 <Border x:Name="InputDeviceBorder" BorderBrush="#555555" BorderThickness="1" CornerRadius="3" Margin="0,0,0,12">
-                    <ComboBox x:Name="InputDeviceCombo" Height="30" DisplayMemberPath="FriendlyName" SelectionChanged="Device_SelectionChanged" BorderThickness="0"/>
+                    <ComboBox x:Name="InputDeviceCombo" Height="30" DisplayMemberPath="DisplayName" SelectionChanged="Device_SelectionChanged" BorderThickness="0"/>
                 </Border>
                 <TextBlock Text="{loc:Tr Label_Output}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
                 <Border x:Name="OutputDeviceBorder" BorderBrush="#555555" BorderThickness="1" CornerRadius="3">
-                    <ComboBox x:Name="OutputDeviceCombo" Height="30" DisplayMemberPath="FriendlyName" SelectionChanged="Device_SelectionChanged" BorderThickness="0"/>
+                    <ComboBox x:Name="OutputDeviceCombo" Height="30" DisplayMemberPath="DisplayName" SelectionChanged="Device_SelectionChanged" BorderThickness="0"/>
                 </Border>
 
                 <!-- Device Profile (input/output combination) -->

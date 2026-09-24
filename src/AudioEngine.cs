@@ -347,18 +347,6 @@ namespace EasyMICBooster
             FftDataReceived?.Invoke(this, _lastFftResults);
         }
 
-        public static IEnumerable<MMDevice> GetInputDevices()
-        {
-            using var enumerator = new MMDeviceEnumerator();
-            return enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active).ToList();
-        }
-
-        public static IEnumerable<MMDevice> GetOutputDevices()
-        {
-            using var enumerator = new MMDeviceEnumerator();
-            return enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active).ToList();
-        }
-
         public void Dispose()
         {
             Stop();

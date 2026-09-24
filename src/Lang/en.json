@@ -45,6 +45,8 @@
     "Msg_ExitConfirm": "Are you sure you want to exit?",
     "Msg_Confirm": "Confirm",
     "Msg_DeviceUnselected": "Device not selected",
+    "Device_Default": "Default Device ({0})",
+    "Device_Default_None": "Default Device (none)",
     "Msg_Loop": "Loop detected",
     "Msg_UpdateAvailable": "v{0} available",
     "Msg_UpdateChecking": "Checking for updates...",

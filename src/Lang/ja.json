@@ -47,6 +47,8 @@
   "Msg_ExitConfirm": "アプリを終了しますか？",
   "Msg_Confirm": "確認",
   "Msg_DeviceUnselected": "デバイス未選択",
+  "Device_Default": "既定のデバイス ({0})",
+  "Device_Default_None": "既定のデバイス (なし)",
   "Msg_Loop": "入力と出力に同じデバイスが選択されており、ループの危険があるため開始できません。",
   "Msg_UpdateAvailable": "v{0} が利用可能",
   "Msg_UpdateChecking": "更新を確認中...",
