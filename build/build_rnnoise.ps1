@@ -4,8 +4,8 @@
   Builds rnnoise.dll for win-x64 and win-x86 from xiph/rnnoise source.
 
 .DESCRIPTION
-  Clones xiph/rnnoise (or reuses a cached clone), downloads the model weights
-  blob from media.xiph.org, and compiles a single-DLL build with MSVC for both
+  Clones xiph/rnnoise at the pinned commit (or reuses a cached clone),
+  downloads the model weights blob from media.xiph.org, and compiles a single-DLL build with MSVC for both
   64-bit and 32-bit architectures. The resulting DLLs are placed under
   native/runtimes/{win-x64,win-x86}/native/ where EasyMICBooster.csproj picks
   them up at publish time.
@@ -34,6 +34,9 @@ $NativeOutX64 = Join-Path $RepoRoot 'native\runtimes\win-x64\native'
 $NativeOutX86 = Join-Path $RepoRoot 'native\runtimes\win-x86\native'
 
 $RnnoiseRepo  = 'https://github.com/xiph/rnnoise.git'
+# Pinned upstream commit. THIRD-PARTY-NOTICES.txt reproduces the copyright
+# notices of exactly this revision; review them again when bumping it.
+$RnnoiseCommit = '70f1d256acd4b34a572f999a05c87bf00b67730d'
 $ModelBaseUrl = 'https://media.xiph.org/rnnoise/models'
 
 # Files that compose the library (mirrors RNNOISE_SOURCES in upstream Makefile.am).
@@ -74,11 +77,20 @@ function Ensure-Source {
     }
 
     if (-not (Test-Path -LiteralPath $WorkRoot)) {
-        Write-Host "[clone] $RnnoiseRepo -> $WorkRoot"
-        & git clone --depth 1 $RnnoiseRepo $WorkRoot
-        if ($LASTEXITCODE -ne 0) { throw "git clone failed" }
+        Write-Host "[clone] $RnnoiseRepo@$RnnoiseCommit -> $WorkRoot"
+        & git init --quiet $WorkRoot
+        if ($LASTEXITCODE -ne 0) { throw "git init failed" }
+        & git -C $WorkRoot fetch --depth 1 $RnnoiseRepo $RnnoiseCommit
+        if ($LASTEXITCODE -ne 0) { throw "git fetch failed" }
+        & git -C $WorkRoot checkout --quiet FETCH_HEAD
+        if ($LASTEXITCODE -ne 0) { throw "git checkout failed" }
     } else {
         Write-Host "[reuse] $WorkRoot"
+    }
+
+    $head = (& git -C $WorkRoot rev-parse HEAD).Trim()
+    if ($head -ne $RnnoiseCommit) {
+        throw "Cached $WorkRoot is at $head, expected $RnnoiseCommit. Re-run with -Clean."
     }
 
     $hashFile = Join-Path $WorkRoot 'model_version'

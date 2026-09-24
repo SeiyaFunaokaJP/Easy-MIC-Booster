@@ -34,7 +34,8 @@ missing.
 
 What the script does:
 
-1. Clones `https://github.com/xiph/rnnoise.git` into `build/rnnoise-src/`
+1. Fetches the pinned commit (`$RnnoiseCommit` in the script) of
+   `https://github.com/xiph/rnnoise.git` into `build/rnnoise-src/`
    (cached on subsequent runs; pass `-Clean` to force a fresh clone).
 2. Downloads the model-weights tarball from `media.xiph.org` (the hash in
    `model_version` keeps this reproducible).
@@ -49,7 +50,11 @@ script searches both. `git` must be on `PATH`.
 
 ## Source and license
 
-- Upstream: <https://github.com/xiph/rnnoise>
-- License: BSD 3-Clause (Xiph.Org, Mozilla, Jean-Marc Valin). Full text is
-  reproduced in `THIRD-PARTY-NOTICES.txt` at the repo root and shipped inside
-  the release ZIPs.
+- Upstream: <https://github.com/xiph/rnnoise>, commit
+  `70f1d256acd4b34a572f999a05c87bf00b67730d`
+- License: BSD 3-Clause (`COPYING`), plus per-file BSD notices from Xiph.Org,
+  Mozilla, Jean-Marc Valin, Amazon, Octasic, CSIRO, Gregor Richards, Parrot
+  and Mark Borgerding. All of them are reproduced in `THIRD-PARTY-NOTICES.txt`
+  at the repo root and shipped inside the release ZIPs.
+- When bumping `$RnnoiseCommit`, re-check `COPYING` and the headers of the
+  compiled sources and update `THIRD-PARTY-NOTICES.txt` to match.

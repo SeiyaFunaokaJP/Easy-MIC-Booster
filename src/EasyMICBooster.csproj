@@ -23,7 +23,7 @@
 
   <ItemGroup>
     <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.1.0" />
-    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -66,6 +66,23 @@
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
+
+  <!--
+    Self-contained builds redistribute the .NET runtime, whose own third-party
+    notices (zlib, Brotli, mimalloc, MsQuic, ...) must ship with it. Copy the
+    notice file from the resolved Microsoft.NETCore.App runtime pack.
+  -->
+  <Target Name="IncludeDotNetRuntimeNotices" AfterTargets="ResolveFrameworkReferences">
+    <ItemGroup>
+      <_DotNetRuntimeNotices Include="@(ResolvedRuntimePack->'%(PackageDirectory)\THIRD-PARTY-NOTICES.TXT')"
+                             Condition="'%(ResolvedRuntimePack.FrameworkName)' == 'Microsoft.NETCore.App'" />
+      <Content Include="@(_DotNetRuntimeNotices)" Condition="Exists('%(FullPath)')">
+        <Link>dotnet-THIRD-PARTY-NOTICES.txt</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      </Content>
+    </ItemGroup>
+  </Target>
 
   <PropertyGroup>
     <ApplicationIcon>Resources\App.ico</ApplicationIcon>

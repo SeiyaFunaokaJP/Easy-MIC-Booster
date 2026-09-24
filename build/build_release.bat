@@ -11,7 +11,7 @@ echo Version: %VERSION%
 
 REM ---------------------------------------------------------
 REM Build native rnnoise.dll for both architectures if missing.
-REM (DLLs are gitignored; this regenerates them from source.)
+REM (DLLs are tracked in git; this only regenerates them if deleted.)
 REM ---------------------------------------------------------
 if not exist "..\native\runtimes\win-x64\native\rnnoise.dll" goto BUILD_RNNOISE
 if not exist "..\native\runtimes\win-x86\native\rnnoise.dll" goto BUILD_RNNOISE
