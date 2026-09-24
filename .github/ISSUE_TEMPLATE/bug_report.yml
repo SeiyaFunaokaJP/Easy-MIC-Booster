@@ -1,0 +1,58 @@
+name: Bug report
+description: Something isn't working right
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this!
+        Only the first box is required — fill in whatever else you can, and don't worry if you're not sure about something.
+        English or Japanese are both fine. (日本語でもOKです)
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the problem in your own words. A sentence or two is totally fine.
+      placeholder: e.g. My voice sounds choppy in Discord after a few minutes.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce (optional)
+      description: If you know how to make it happen again, let me know.
+      placeholder: |
+        1. Select my USB mic as Input and VB-CABLE Input as Output
+        2. Turn it ON
+        3. ...
+
+  - type: input
+    id: version
+    attributes:
+      label: Easy MIC Booster version (optional)
+      description: Shown in the app. "Latest" is fine if you're not sure.
+      placeholder: e.g. v1.0.6
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version (optional)
+      placeholder: e.g. Windows 11 24H2
+
+  - type: textarea
+    id: devices
+    attributes:
+      label: Audio setup (optional)
+      description: Your microphone, the virtual device you route to, and the app you use it in.
+      placeholder: |
+        Mic: Blue Yeti
+        Output: VB-CABLE Input
+        Used in: Discord
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else? (optional)
+      description: Screenshots, settings, logs — drag and drop files here if you have them.

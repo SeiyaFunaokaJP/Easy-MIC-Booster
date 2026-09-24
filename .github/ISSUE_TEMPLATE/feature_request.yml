@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest an idea or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ideas of any size are welcome — even rough ones!
+        English or Japanese are both fine. (日本語でもOKです)
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      placeholder: e.g. A hotkey to toggle the booster on and off.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why would it help? (optional)
+      description: What you're trying to do, or what's inconvenient right now.

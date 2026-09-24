@@ -7,6 +7,7 @@ Since this is a personal project, I appreciate any help or feedback.
 ## Reporting Bugs
 
 If you find a bug or have a feature request, please **open an issue** on GitHub.
+There are simple templates to help, but only the first box is required — a short note is perfectly fine, and English or Japanese both work.
 
 ## Sending Code
 
