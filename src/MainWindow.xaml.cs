@@ -88,6 +88,11 @@ namespace EasyMICBooster
             _audioEngine.StreamFaulted += OnStreamFaulted;
             Microsoft.Win32.SystemEvents.PowerModeChanged += OnPowerModeChanged;
             
+            foreach (var (code, nativeName) in Localization.LocalizationManager.SupportedLanguages)
+            {
+                LanguageCombo.Items.Add(new ComboBoxItem { Content = nativeName, Tag = code });
+            }
+
             LoadDevices();
             LoadSettings();
             _isInitializing = false;
@@ -111,7 +116,7 @@ namespace EasyMICBooster
                 InputDeviceCombo.ItemsSource = DeviceListItem.GetInputList();
                 OutputDeviceCombo.ItemsSource = DeviceListItem.GetOutputList();
             }
-            catch (Exception ex) { MessageBox.Show($"デバイス読み込みエラー: {ex.Message}"); }
+            catch (Exception ex) { MessageBox.Show(string.Format(Localization.LocalizationManager.Instance.GetString("Msg_DeviceLoadError"), ex.Message)); }
         }
 
         private void LoadSettings()
@@ -224,10 +229,10 @@ namespace EasyMICBooster
             // Initialize Localization
             Localization.LocalizationManager.Instance.LoadLanguage(language);
             
-            // Update Language Combo UI
+            // Update Language Combo UI (CurrentLanguage is English if the saved language is unavailable)
             foreach (ComboBoxItem item in LanguageCombo.Items)
             {
-                if (item.Tag?.ToString() == language)
+                if (item.Tag?.ToString() == Localization.LocalizationManager.Instance.CurrentLanguage)
                 {
                     LanguageCombo.SelectedItem = item;
                     break;
@@ -865,13 +870,13 @@ namespace EasyMICBooster
         {
             if (FlatModeCheck.IsChecked == true)
             {
-                MessageBox.Show("フラットモード中はポイントを追加できません。", "制限", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(Localization.LocalizationManager.Instance.GetString("Msg_FlatModeNoAddPoint"), Localization.LocalizationManager.Instance.GetString("Msg_Limit"), MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
             if (_uiPoints.Count >= 16)
             {
-                MessageBox.Show("ポイント数の上限(16)に達しました。", "制限", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(string.Format(Localization.LocalizationManager.Instance.GetString("Msg_MaxPoints"), 16), Localization.LocalizationManager.Instance.GetString("Msg_Limit"), MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -968,14 +973,14 @@ namespace EasyMICBooster
             string name = PresetCombo.Text.Trim();
             if (string.IsNullOrEmpty(name))
             {
-                MessageBox.Show("プリセット名を入力してください。", "エラー", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(Localization.LocalizationManager.Instance.GetString("Msg_PresetNameRequired"), Localization.LocalizationManager.Instance.GetString("Msg_Error"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             var existing = _presets.FirstOrDefault(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
             if (existing != null)
             {
-                var res = MessageBox.Show($"プリセット '{name}' は既に存在します。上書きしますか？", "確認", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                var res = MessageBox.Show(string.Format(Localization.LocalizationManager.Instance.GetString("Msg_PresetOverwrite"), name), Localization.LocalizationManager.Instance.GetString("Msg_Confirm"), MessageBoxButton.YesNo, MessageBoxImage.Question);
                 if (res != MessageBoxResult.Yes) return;
                 
                 // Update existing
@@ -1013,7 +1018,7 @@ namespace EasyMICBooster
         {
             if (PresetCombo.SelectedItem is Preset p)
             {
-                 var res = MessageBox.Show($"プリセット '{p.Name}' を削除しますか？", "確認", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                 var res = MessageBox.Show(string.Format(Localization.LocalizationManager.Instance.GetString("Msg_PresetDelete"), p.Name), Localization.LocalizationManager.Instance.GetString("Msg_Confirm"), MessageBoxButton.YesNo, MessageBoxImage.Question);
                  if (res == MessageBoxResult.Yes)
                  {
                      _presets.Remove(p);
@@ -1409,7 +1414,7 @@ namespace EasyMICBooster
         private void StopAudio() { _audioEngine.Stop(); _runningInputId = null; _runningOutputId = null; if(LevelMeter!=null) LevelMeter.Width=0; }
 
 
-        private void OnPeakLevelReceived(object? s, float v) { Dispatcher.InvokeAsync(()=>{if(LevelMeter!=null&&ActualWidth>0){LevelMeter.MaxWidth=Math.Max(0,ActualWidth-80);LevelMeter.Width=LevelMeter.MaxWidth*v;}}); }
+        private void OnPeakLevelReceived(object? s, float v) { Dispatcher.InvokeAsync(()=>{if(LevelMeter!=null&&LevelMeterTrack.ActualWidth>0){LevelMeter.MaxWidth=LevelMeterTrack.ActualWidth;LevelMeter.Width=LevelMeter.MaxWidth*Math.Clamp(v,0f,1f);}}); }
         private void OnAudioError(object? s, string m)
         {
             Dispatcher.InvokeAsync(() =>
@@ -1517,7 +1522,7 @@ namespace EasyMICBooster
                     var path = GetExecutablePath();
                     if (string.IsNullOrEmpty(path))
                     {
-                        MessageBox.Show("自動起動の登録に失敗しました: 実行ファイルのパスを取得できませんでした。", "エラー", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show(Localization.LocalizationManager.Instance.GetString("Msg_StartupPathFailed"), Localization.LocalizationManager.Instance.GetString("Msg_Error"), MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
                     k.SetValue("EasyMICBooster", $"\"{path}\"");
@@ -1530,7 +1535,7 @@ namespace EasyMICBooster
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"自動起動の設定に失敗しました: {ex.Message}", "エラー", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(string.Format(Localization.LocalizationManager.Instance.GetString("Msg_StartupFailed"), ex.Message), Localization.LocalizationManager.Instance.GetString("Msg_Error"), MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
         // Task Manager / Settings can disable Run-key entries via StartupApproved.

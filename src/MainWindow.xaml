@@ -40,10 +40,8 @@
                  
                  <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
                      <!-- Language Selector -->
-                     <ComboBox x:Name="LanguageCombo" Width="80" SelectionChanged="Language_SelectionChanged">
-                         <ComboBoxItem Content="日本語" Tag="ja" IsSelected="True"/>
-                         <ComboBoxItem Content="English" Tag="en"/>
-                     </ComboBox>
+                     <!-- Items are filled from LocalizationManager.SupportedLanguages -->
+                     <ComboBox x:Name="LanguageCombo" MinWidth="100" SelectionChanged="Language_SelectionChanged"/>
                  </StackPanel>
             </Grid>
 
@@ -267,7 +265,7 @@
                         </ToggleButton.Template>
                     </ToggleButton>
                 </Grid>
-                <TextBlock x:Name="NoiseSuppressionHelp" Text="{loc:Tr Help_NoiseSuppression}" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                <TextBlock x:Name="NoiseSuppressionHelp" Text="{loc:Tr Help_NoiseSuppression}" TextWrapping="Wrap" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
 
                 <!-- Noise Gate Control -->
                 <TextBlock Text="{loc:Tr Group_NoiseGate}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,4"/>
@@ -286,14 +284,18 @@
                                VerticalAlignment="Center" HorizontalAlignment="Right" 
                                Foreground="{StaticResource TextSecondaryBrush}"/>
                 </Grid>
-                <TextBlock Text="{loc:Tr Help_NoiseGate}" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                <TextBlock Text="{loc:Tr Help_NoiseGate}" TextWrapping="Wrap" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
 
 
 
                 <!-- Level Meter -->
                 <Grid Margin="0,12,0,0">
-                    <TextBlock Text="{loc:Tr Label_OutputLevel}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                    <Grid Height="6" Margin="70,0,0,0" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" MinWidth="70"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{loc:Tr Label_OutputLevel}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <Grid x:Name="LevelMeterTrack" Grid.Column="1" Height="6" VerticalAlignment="Center">
                         <Rectangle Fill="#3F3F5A" RadiusX="3" RadiusY="3"/>
                         <Rectangle x:Name="LevelMeter" HorizontalAlignment="Left" Width="0" RadiusX="3" RadiusY="3" Fill="{StaticResource SuccessBrush}"/>
                     </Grid>

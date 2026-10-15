@@ -52,5 +52,15 @@
   "Msg_Loop": "入力と出力に同じデバイスが選択されており、ループの危険があるため開始できません。",
   "Msg_UpdateAvailable": "v{0} が利用可能",
   "Msg_UpdateChecking": "更新を確認中...",
-  "Msg_UpdateError": "更新確認エラー"
+  "Msg_UpdateError": "更新確認エラー",
+  "Msg_DeviceLoadError": "デバイス読み込みエラー: {0}",
+  "Msg_AudioStartFailed": "オーディオエンジンの起動に失敗しました:\n{0}",
+  "Msg_Limit": "制限",
+  "Msg_FlatModeNoAddPoint": "フラットモード中はポイントを追加できません。",
+  "Msg_MaxPoints": "ポイント数の上限({0})に達しました。",
+  "Msg_PresetNameRequired": "プリセット名を入力してください。",
+  "Msg_PresetOverwrite": "プリセット '{0}' は既に存在します。上書きしますか？",
+  "Msg_PresetDelete": "プリセット '{0}' を削除しますか？",
+  "Msg_StartupPathFailed": "自動起動の登録に失敗しました: 実行ファイルのパスを取得できませんでした。",
+  "Msg_StartupFailed": "自動起動の設定に失敗しました: {0}"
 }

@@ -70,7 +70,7 @@ namespace EasyMICBooster
             bool flatMode = false;
             string lastPresetName = "";
             string lastDeviceProfileName = "";
-            string language = "en";
+            string language = Localization.LocalizationManager.DetectSystemLanguage();
             bool updateCheck = true;
             bool noiseSuppression = false;
 
