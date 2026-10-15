@@ -1058,17 +1058,37 @@ namespace EasyMICBooster
 
         private void ApplyDeviceProfile(DeviceProfile dp)
         {
+            // Remember the profile's devices even when they are currently disabled or
+            // unplugged, so HandleDeviceChange re-selects them once they come back
+            // (instead of the devices that were selected before the profile).
+            if (!string.IsNullOrEmpty(dp.InputDeviceId)) _lastInputId = dp.InputDeviceId;
+            if (!string.IsNullOrEmpty(dp.OutputDeviceId)) _lastOutputId = dp.OutputDeviceId;
+
             _isLoadingDeviceProfile = true;
+            _isRefreshingDevices = true;
             try
             {
-                SelectDeviceById(InputDeviceCombo, dp.InputDeviceId);
-                SelectDeviceById(OutputDeviceCombo, dp.OutputDeviceId);
+                SelectDeviceByIdOrClear(InputDeviceCombo, _lastInputId);
+                SelectDeviceByIdOrClear(OutputDeviceCombo, _lastOutputId);
             }
             finally
             {
+                _isRefreshingDevices = false;
                 _isLoadingDeviceProfile = false;
             }
-            // Device_SelectionChanged restarts audio + saves settings.
+
+            UpdateDeviceValidation();
+            StopAudio();
+            StartAudio();
+            SaveSettings();
+        }
+
+        // Unlike SelectDeviceById, an absent device clears the selection so the red
+        // border shows that the profile's device is missing.
+        private void SelectDeviceByIdOrClear(ComboBox combo, string deviceId)
+        {
+            var devices = combo.ItemsSource as IEnumerable<DeviceListItem>;
+            combo.SelectedItem = devices?.FirstOrDefault(d => d.Id == deviceId);
         }
 
         private void SaveDeviceProfile_Click(object sender, RoutedEventArgs e)
