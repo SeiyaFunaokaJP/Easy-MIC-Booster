@@ -40,6 +40,15 @@ mkdir "%BIN_DIR%"
 mkdir "%ZIP_DIR%"
 
 REM ---------------------------------------------------------
+REM Inno Setup 6 compiler (optional: without it only the zips are built).
+REM Install with: winget install JRSoftware.InnoSetup
+REM ---------------------------------------------------------
+set ISCC=
+for %%P in ("%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" "%ProgramFiles%\Inno Setup 6\ISCC.exe") do if not defined ISCC if exist %%P set ISCC=%%~P
+if not defined ISCC for /f "delims=" %%P in ('where ISCC.exe 2^>nul') do if not defined ISCC set ISCC=%%P
+if defined ISCC (echo Inno Setup: %ISCC%) else (echo WARNING: Inno Setup 6 ^(ISCC.exe^) not found; skipping the installers.)
+
+REM ---------------------------------------------------------
 REM Build for x64
 REM ---------------------------------------------------------
 echo.
@@ -53,7 +62,17 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo Zipping x64...
-powershell -Command "Compress-Archive -Path '%BIN_DIR%\x64\*' -DestinationPath '%ZIP_DIR%\EasyMICBooster-x64-v%VERSION%.zip' -Force"
+powershell -Command "Compress-Archive -Path '%BIN_DIR%\x64\*' -DestinationPath '%ZIP_DIR%\EasyMICBooster-x64-v%VERSION%-portable.zip' -Force"
+
+if defined ISCC (
+    echo Building x64 installer...
+    "%ISCC%" /Q /DAppVersion=%VERSION% /DArch=x64 "/DPkgDir=%BIN_DIR%\x64" "/DOutputDir=%ZIP_DIR%" "%~dp0..\installer\EasyMICBooster.iss"
+    if errorlevel 1 (
+        echo x64 Installer Failed!
+        pause
+        exit /b 1
+    )
+)
 
 REM ---------------------------------------------------------
 REM Build for x86
@@ -69,7 +88,17 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo Zipping x86...
-powershell -Command "Compress-Archive -Path '%BIN_DIR%\x86\*' -DestinationPath '%ZIP_DIR%\EasyMICBooster-x86-v%VERSION%.zip' -Force"
+powershell -Command "Compress-Archive -Path '%BIN_DIR%\x86\*' -DestinationPath '%ZIP_DIR%\EasyMICBooster-x86-v%VERSION%-portable.zip' -Force"
+
+if defined ISCC (
+    echo Building x86 installer...
+    "%ISCC%" /Q /DAppVersion=%VERSION% /DArch=x86 "/DPkgDir=%BIN_DIR%\x86" "/DOutputDir=%ZIP_DIR%" "%~dp0..\installer\EasyMICBooster.iss"
+    if errorlevel 1 (
+        echo x86 Installer Failed!
+        pause
+        exit /b 1
+    )
+)
 
 echo.
 echo ==========================================
@@ -78,9 +107,13 @@ echo ==========================================
 echo User: %USERNAME%
 echo Date: %DATE% %TIME%
 echo.
-echo Output zips:
-echo   %ZIP_DIR%\EasyMICBooster-x64-v%VERSION%.zip
-echo   %ZIP_DIR%\EasyMICBooster-x86-v%VERSION%.zip
+echo Output:
+echo   %ZIP_DIR%\EasyMICBooster-x64-v%VERSION%-portable.zip
+echo   %ZIP_DIR%\EasyMICBooster-x86-v%VERSION%-portable.zip
+if defined ISCC (
+    echo   %ZIP_DIR%\EasyMICBooster-x64-v%VERSION%-setup.exe
+    echo   %ZIP_DIR%\EasyMICBooster-x86-v%VERSION%-setup.exe
+)
 echo.
 REM Clean up src/bin and src/obj if they were created
 if exist ..\src\bin rmdir /s /q ..\src\bin

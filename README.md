@@ -15,6 +15,7 @@ Captures microphone input via NAudio (WASAPI), applies a DSP chain — Noise Gat
 | Equalizer | Multi-band EQ for tailoring vocal tone |
 | Limiter | Prevents clipping at high gain settings |
 | Virtual device routing | Sends processed audio to VB-CABLE or any virtual input |
+| Languages | English, 日本語, 简体中文, 繁體中文, 한국어, Deutsch, Français, Español |
 
 ## Prerequisites
 
@@ -24,8 +25,8 @@ Captures microphone input via NAudio (WASAPI), applies a DSP chain — Noise Gat
 ## Quick Start
 
 1. Install VB-CABLE.
-2. Download the latest release and extract the zip.
-3. Run `EasyMICBooster.exe`.
+2. Download the latest release: the installer (`EasyMICBooster-x64-vX.Y.Z-setup.exe`) or the portable zip (`...-portable.zip`, extract anywhere).
+3. Run Easy MIC Booster from the Start menu (or `EasyMICBooster.exe` in the extracted folder).
 4. Select **Input** (your microphone) and **Output** (VB-CABLE Input).
 5. Toggle the switch to **ON**.
 6. In the application you want to use the processed mic in (Discord, OBS, etc.), select **VB-CABLE Output** as the input device.
@@ -38,7 +39,7 @@ cd Easy-MIC-Booster
 build\build_release.bat
 ```
 
-Outputs are written to `build/zip/EasyMICBooster-x64-vX.Y.Z.zip` and `build/zip/EasyMICBooster-x86-vX.Y.Z.zip`.
+Outputs are written to `build/zip/`: `EasyMICBooster-{x64,x86}-vX.Y.Z-portable.zip` and, when [Inno Setup 6](https://jrsoftware.org/isinfo.php) is installed (`winget install JRSoftware.InnoSetup`), `EasyMICBooster-{x64,x86}-vX.Y.Z-setup.exe` built by `installer/EasyMICBooster.iss`.
 
 > **Note**: Requires the .NET 8 SDK. The build script reads the version from `version.txt` and produces self-contained x64 and x86 builds.
 

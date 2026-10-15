@@ -50,8 +50,8 @@ NAudio でマイク入力をキャプチャし、AI ノイズ抑制（RNNoise）
 ## クイックスタート
 
 1. [VB-CABLE](https://vb-audio.com/Cable/) をインストール。
-2. リリース版の zip をダウンロードして解凍。
-3. `EasyMICBooster.exe` を起動。
+2. リリース版のインストーラー（`...-setup.exe`）またはポータブル版 zip をダウンロード。
+3. Easy MIC Booster を起動。
 4. **入力** に物理マイク、**出力** に `CABLE Input (VB-Audio Virtual Cable)` を選択。
 5. 中央のスイッチを **ON**。
 6. Discord / Zoom / OBS のマイクに `CABLE Output (VB-Audio Virtual Cable)` を選択。
