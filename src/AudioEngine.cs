@@ -159,7 +159,7 @@ namespace EasyMICBooster
             catch (Exception ex)
             {
                 Stop();
-                ErrorOccurred?.Invoke(this, $"オーディオエンジンの起動に失敗しました:\n{ex.Message}");
+                ErrorOccurred?.Invoke(this, string.Format(Localization.LocalizationManager.Instance.GetString("Msg_AudioStartFailed"), ex.Message));
             }
         }
 

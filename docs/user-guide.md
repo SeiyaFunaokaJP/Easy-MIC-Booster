@@ -30,14 +30,19 @@ nav_order: 2
 
 ### 2. Install Easy MIC Booster
 
-1. Download the latest zip from the [Releases](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/releases) page.
-2. Unzip into any folder (for example `C:\Tools\EasyMICBooster`).
+Download the latest release from the [Releases](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/releases) page, either:
+
+- **Installer** (`EasyMICBooster-x64-vX.Y.Z-setup.exe`): installs for the current user without administrator rights and adds a Start menu entry. Uninstall from Windows Settings > Apps; your settings in `%APPDATA%\EasyMICBooster` are kept.
+- **Portable** (`EasyMICBooster-x64-vX.Y.Z-portable.zip`): unzip into any folder (for example `C:\Tools\EasyMICBooster`).
+
+Use the `x86` files only on 32-bit Windows.
 
 ## First-Time Setup
 
 ### Launch the Application
 
-Run `EasyMICBooster.exe` from the unzipped folder.
+Start Easy MIC Booster from the Start menu (installer) or run `EasyMICBooster.exe` from the unzipped folder (portable).
+The UI language follows Windows on first run and can be changed with the selector at the top right.
 
 ### Configure Devices
 

@@ -49,8 +49,8 @@ Microphone Input
 ## Quick Start
 
 1. Install [VB-CABLE](https://vb-audio.com/Cable/).
-2. Download and unzip the latest release.
-3. Launch `EasyMICBooster.exe`.
+2. Download the latest release (installer `...-setup.exe`, or the portable zip).
+3. Launch Easy MIC Booster.
 4. Select your microphone as **Input** and `CABLE Input (VB-Audio Virtual Cable)` as **Output**.
 5. Toggle the central switch **ON**.
 6. In Discord/Zoom/OBS, select `CABLE Output (VB-Audio Virtual Cable)` as the microphone.
