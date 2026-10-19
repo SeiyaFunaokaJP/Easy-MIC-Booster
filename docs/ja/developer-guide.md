@@ -40,9 +40,10 @@ nav_order: 3
 | Linux x64 / ARM64 | `x86_64-unknown-linux-gnu` / `aarch64-unknown-linux-gnu` | 試験的 |
 | macOS Apple Silicon / Intel | `aarch64-apple-darwin` / `x86_64-apple-darwin` | 試験的・未署名 |
 
-Linux では PipeWire/PulseAudio の null シンク
-（`pactl load-module module-null-sink sink_name=EasyMICBooster`）へ出力し、
-相手側アプリのマイクにそのモニターを選択します。macOS では VB-CABLE の代わりに
+Linux では音声は ALSA 経由で出力されます。PipeWire/PulseAudio の null シンク
+（`pactl load-module module-null-sink sink_name=EasyMICBooster`）を作成し、
+`PULSE_SINK=EasyMICBooster` を付けてアプリを起動して出力に **pulse**（または **default**）を選び、
+相手側アプリのマイクにそのシンクのモニターを選択します。macOS では VB-CABLE の代わりに
 [BlackHole](https://existential.audio/blackhole/) を使用します。
 
 ## プロジェクト構成

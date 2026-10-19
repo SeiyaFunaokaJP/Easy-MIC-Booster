@@ -39,9 +39,10 @@ nav_order: 4
 | Linux x64 / ARM64 | `x86_64-unknown-linux-gnu` / `aarch64-unknown-linux-gnu` | Experimental |
 | macOS Apple Silicon / Intel | `aarch64-apple-darwin` / `x86_64-apple-darwin` | Experimental, unsigned |
 
-On Linux, route the output to a PipeWire/PulseAudio null sink
-(`pactl load-module module-null-sink sink_name=EasyMICBooster`) and select its
-monitor as the microphone in the target app. On macOS, use
+On Linux, audio goes through ALSA: create a PipeWire/PulseAudio null sink
+(`pactl load-module module-null-sink sink_name=EasyMICBooster`), start the app
+with `PULSE_SINK=EasyMICBooster`, pick **pulse** (or **default**) as the output,
+and select the sink's monitor as the microphone in the target app. On macOS, use
 [BlackHole](https://existential.audio/blackhole/) in place of VB-CABLE.
 
 ## Project Structure
