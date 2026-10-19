@@ -44,7 +44,21 @@ pub fn check(state: Arc<Mutex<UpdateState>>, notify: Arc<dyn Fn() + Send + Sync>
         .name("update-check".into())
         .spawn(move || {
             let result = (|| -> Result<String, Box<dyn std::error::Error>> {
-                let mut resp = ureq::get(API_URL)
+                let agent = ureq::Agent::new_with_config(
+                    ureq::config::Config::builder()
+                        .tls_config(
+                            ureq::tls::TlsConfig::builder()
+                                .provider(if cfg!(windows) {
+                                    ureq::tls::TlsProvider::NativeTls
+                                } else {
+                                    ureq::tls::TlsProvider::Rustls
+                                })
+                                .build(),
+                        )
+                        .build(),
+                );
+                let mut resp = agent
+                    .get(API_URL)
                     .header(
                         "User-Agent",
                         concat!("EasyMICBooster/", env!("CARGO_PKG_VERSION")),

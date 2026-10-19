@@ -15,7 +15,17 @@ Captures microphone input (WASAPI on Windows, ALSA/PipeWire on Linux, CoreAudio 
 | Equalizer | Multi-band EQ for tailoring vocal tone |
 | Limiter | Prevents clipping at high gain settings |
 | Virtual device routing | Sends processed audio to VB-CABLE or any virtual input |
+| Presets & device profiles | Built-in and user presets (unsaved changes are shown, never silently lost); input/output pairs saved as profiles |
+| Tray quick controls | Toggle boost / noise suppression, change gain, presets, profiles and devices from the tray menu |
 | Languages | English, 日本語, 简体中文, 繁體中文, 한국어, Deutsch, Français, Español |
+
+## What's new in 2.0
+
+- Rewritten in Rust: a single ~14 MB executable, no .NET runtime.
+- Much lower load: hidden in the tray it uses about 0.3% of one CPU core with noise suppression on (v1.x: ~8–11%). The whole DSP chain costs 0.16% of a core, 0.72% with noise suppression.
+- New UI: real EQ response curve with live spectrum, point inspector, gate meter with a draggable threshold, clearer preset management.
+- Tray menu for quick changes; `--minimized` start; Windows ARM64 build; experimental Linux and macOS builds.
+- Settings, presets and device profiles from v1.x are imported automatically.
 
 ## Prerequisites
 
@@ -26,9 +36,10 @@ Captures microphone input (WASAPI on Windows, ALSA/PipeWire on Linux, CoreAudio 
 
 Linux (x64 / ARM64) and macOS (Apple Silicon / Intel) builds are published as `.tar.gz` archives containing a single `EasyMICBooster` binary. They are less tested than the Windows version, and the macOS binary is not signed.
 
-- **Linux**: needs GTK 3 and libayatana-appindicator3 (for the tray icon). Create a virtual sink with PipeWire or PulseAudio, select it as **Output** in Easy MIC Booster, and choose its monitor (*Monitor of EasyMICBooster*) as the microphone in the target app:
+- **Linux**: needs GTK 3 and libayatana-appindicator3 (for the tray icon). Audio goes through ALSA, so with PipeWire/PulseAudio create a virtual sink, start the app with `PULSE_SINK` pointing at it, pick **pulse** (or **default**) as **Output**, and choose *Monitor of EasyMICBooster* as the microphone in the target app:
   ```bash
   pactl load-module module-null-sink sink_name=EasyMICBooster
+  PULSE_SINK=EasyMICBooster ./EasyMICBooster
   ```
 - **macOS**: install [BlackHole](https://existential.audio/blackhole/), select it as **Output**, and choose BlackHole as the microphone in the target app. Because the binary is unsigned, allow it once with `xattr -d com.apple.quarantine EasyMICBooster` (or from System Settings > Privacy & Security).
 
