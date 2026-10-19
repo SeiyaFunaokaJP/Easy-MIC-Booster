@@ -51,6 +51,9 @@ windows-core = "0.62"
 ureq = { version = "3", default-features = false, features = ["rustls", "json"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
+# winit needs a windowing backend on Linux. eframe's own x11/wayland features also
+# name egui_glow 0.36, which is not published, so enable them on egui-winit.
+egui-winit = { version = "0.36", default-features = false, features = ["x11", "wayland"] }
 gtk = "0.18"
 
 [build-dependencies]
