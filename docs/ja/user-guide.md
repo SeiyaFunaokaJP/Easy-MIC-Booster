@@ -36,7 +36,7 @@ nav_order: 1
 - **インストーラー**（`EasyMICBooster-x64-vX.Y.Z-setup.exe`）: 管理者権限なしで現在のユーザーにインストールし、スタートメニューに登録します。アンインストールは Windows の設定 > アプリ から行えます（`%APPDATA%\EasyMICBooster` の設定は残ります）。
 - **ポータブル版**（`EasyMICBooster-x64-vX.Y.Z-portable.zip`）: 任意のフォルダ（例: `C:\Tools\EasyMICBooster`）に解凍。
 
-`x86` 版は 32bit Windows の場合のみ使用してください。
+Windows on ARM では `arm64` 版を、32bit Windows の場合のみ `x86` 版を使用してください。
 
 ## 初回セットアップ
 

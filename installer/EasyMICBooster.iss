@@ -1,14 +1,19 @@
 ; Easy MIC Booster installer (Inno Setup 6)
 ;
-; Built by build\build_release.bat from the published self-contained output,
-; so the installer and the portable zip contain the same files:
-;   ISCC /DAppVersion=<ver> /DArch=x64|x86 /DPkgDir=<dir> /DOutputDir=<dir> EasyMICBooster.iss
+; Built by build\build_release.ps1 (and .github\workflows\release.yml) from the
+; staged release folder, so the installer and the portable zip contain the same
+; files: EasyMICBooster.exe (a single self-contained binary with the languages
+; embedded), LICENSE, THIRD-PARTY-NOTICES.txt and README.md.
+;   ISCC /DAppVersion=<ver> /DArch=x64|x86|arm64 /DPkgDir=<dir> /DOutputDir=<dir> EasyMICBooster.iss
 
 #ifndef AppVersion
   #error AppVersion is not defined
 #endif
 #ifndef Arch
-  #error Arch is not defined (x64 or x86)
+  #error Arch is not defined (x64, x86 or arm64)
+#endif
+#if Arch != "x64" && Arch != "x86" && Arch != "arm64"
+  #error Arch must be x64, x86 or arm64
 #endif
 #ifndef PkgDir
   #error PkgDir is not defined
@@ -23,7 +28,7 @@
 
 [Setup]
 ; Never change AppId: it ties upgrades and the uninstaller to earlier installs.
-; x64 and x86 share it, so installing one replaces the other.
+; x64, x86 and arm64 share it, so installing one replaces the other.
 AppId={{70F2979B-CA0E-4236-841B-164616251CFC}
 AppName={#AppName}
 AppVersion={#AppVersion}
@@ -42,13 +47,16 @@ DisableProgramGroupPage=yes
 #if Arch == "x64"
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
+#elif Arch == "arm64"
+ArchitecturesAllowed=arm64
+ArchitecturesInstallIn64BitMode=arm64
 #endif
 MinVersion=10.0
-; Same name as the app's single-instance mutex (App.xaml.cs): setup and the
-; uninstaller ask to close a running Easy MIC Booster first
+; Same name as the app's single-instance mutex (unchanged since 1.x): setup and
+; the uninstaller ask to close a running Easy MIC Booster first
 AppMutex=Global\EasyMICBooster_UniqueInstance_Mutex
 CloseApplications=yes
-SetupIconFile=..\src\Resources\App.ico
+SetupIconFile=..\assets\App.ico
 UninstallDisplayIcon={app}\{#AppExe}
 UninstallDisplayName={#AppName}
 WizardStyle=modern
@@ -70,8 +78,23 @@ Name: "es"; MessagesFile: "compiler:Languages\Spanish.isl"
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
+[InstallDelete]
+; Upgrading over 1.x (.NET self-contained build): remove its runtime files,
+; which the single Rust executable no longer needs. Only files inside the
+; application folder are touched; settings in %APPDATA% are not.
+Type: files; Name: "{app}\*.dll"
+Type: files; Name: "{app}\*.pdb"
+Type: files; Name: "{app}\*.deps.json"
+Type: files; Name: "{app}\*.runtimeconfig.json"
+Type: files; Name: "{app}\dotnet-THIRD-PARTY-NOTICES.txt"
+Type: filesandordirs; Name: "{app}\Lang"
+Type: filesandordirs; Name: "{app}\runtimes"
+
 [Files]
-Source: "{#PkgDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#PkgDir}\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#PkgDir}\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#PkgDir}\THIRD-PARTY-NOTICES.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#PkgDir}\README.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"
@@ -104,8 +127,9 @@ begin
     '[Settings]' + #13#10 + 'Language=' + ActiveLanguage + #13#10, False);
 end;
 
-{ "Start with Windows" writes HKCU\...\Run\EasyMICBooster; remove it when it
-  points at this installation. The config folder is kept. }
+{ "Start with Windows" writes HKCU\...\Run\EasyMICBooster as
+  "<app>\EasyMICBooster.exe" --minimized; remove it when it points at this
+  installation. The config folder is kept. }
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   Cmd: String;

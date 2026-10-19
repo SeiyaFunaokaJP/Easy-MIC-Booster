@@ -17,69 +17,119 @@ nav_order: 4
 
 ## Build Requirements
 
-- **.NET 8.0 SDK** -- [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/8.0)
-- **IDE** -- Visual Studio 2022 (recommended) or VS Code
+- **Rust** (stable) -- install with [rustup](https://rustup.rs/)
+- **Windows**: [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) 2022 with the *Desktop development with C++* workload (MSVC + Windows SDK). Add the *MSVC ARM64 build tools* component to build for ARM64.
+- **Linux** (Debian/Ubuntu package names):
+  ```bash
+  sudo apt install build-essential pkg-config libasound2-dev libgtk-3-dev libxdo-dev \
+    libayatana-appindicator3-dev libxkbcommon-dev libwayland-dev libx11-dev \
+    libxcursor-dev libxrandr-dev libxi-dev
+  ```
+- **macOS**: Xcode Command Line Tools (`xcode-select --install`)
+- **Editor** -- any; VS Code with rust-analyzer works well
+- **Inno Setup 6** (optional, Windows installers) -- `winget install JRSoftware.InnoSetup`
+
+## Supported Platforms
+
+| Platform | Rust target | Status |
+|:---------|:------------|:-------|
+| Windows x64 | `x86_64-pc-windows-msvc` | Supported |
+| Windows x86 | `i686-pc-windows-msvc` | Supported |
+| Windows ARM64 | `aarch64-pc-windows-msvc` | Supported |
+| Linux x64 / ARM64 | `x86_64-unknown-linux-gnu` / `aarch64-unknown-linux-gnu` | Experimental |
+| macOS Apple Silicon / Intel | `aarch64-apple-darwin` / `x86_64-apple-darwin` | Experimental, unsigned |
+
+On Linux, route the output to a PipeWire/PulseAudio null sink
+(`pactl load-module module-null-sink sink_name=EasyMICBooster`) and select its
+monitor as the microphone in the target app. On macOS, use
+[BlackHole](https://existential.audio/blackhole/) in place of VB-CABLE.
 
 ## Project Structure
 
 ```
 Easy-MIC-Booster/
-├── src/                       Source code
-│   └── Lang/                  Language files (json)
+├── Cargo.toml                 Crate manifest (version must match version.txt)
+├── build.rs                   Embeds the icon and version info into the Windows exe
+├── version.txt                Release version (source of truth)
+├── src/                       Rust source code
+├── lang/                      Language files (json, embedded into the binary)
+├── assets/                    Icons
+├── installer/                 Inno Setup script (Windows installer)
+├── tools/                     Helper scripts (check_lang.py)
 ├── docs/                      Documentation site (this Jekyll site)
 │   ├── _config.yml
 │   ├── _includes/
 │   ├── images/
 │   ├── ja/                    Japanese translation
 │   └── *.md                   English pages
-├── native/                    Bundled native binaries
-│   └── runtimes/
-│       ├── win-x64/native/    rnnoise.dll for x64
-│       └── win-x86/native/    rnnoise.dll for x86
+├── .github/workflows/         CI (ci.yml) and release builds (release.yml)
 └── build/                     Build scripts and artifacts
-    ├── build_debug.bat        Debug build
-    ├── build_release.bat      Release build
-    ├── build_rnnoise.ps1      Builds rnnoise.dll from xiph/rnnoise source
-    ├── Directory.Build.props  Common MSBuild settings
-    ├── bin/                   Build output (x64 / x86)
+    ├── build_release.ps1      Windows release build (x64 / x86 / arm64)
+    ├── build_release.bat      Double-click wrapper for build_release.ps1
+    ├── build_linux.sh         Linux / macOS release build (.tar.gz)
+    ├── gen_notices.ps1        Regenerates THIRD-PARTY-NOTICES.txt (cargo-about)
+    ├── about.toml, about.hbs  cargo-about configuration and template
+    ├── bin/                   Staged packages (per architecture)
     └── zip/                   Distribution packages
 ```
 
-## Native Dependencies
+## Noise Suppression
 
-The AI Noise Suppression feature uses [RNNoise](https://github.com/xiph/rnnoise)
-(BSD-3-Clause) via P/Invoke. Pre-built `rnnoise.dll` binaries are committed
-under `native/runtimes/<rid>/native/` so a clean clone produces a complete
-release without requiring an MSVC setup. To rebuild them from source:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File build\build_rnnoise.ps1
-```
-
-The script clones `xiph/rnnoise`, downloads the model weights blob from
-`media.xiph.org` (hash pinned via the upstream `model_version` file), and
-compiles a single-DLL build with `cl.exe /LD /MT /O2`. Visual Studio 2019/2022
-with the *Desktop development with C++* workload is required when running it.
-`build_release.bat` invokes the script automatically if the DLLs are missing.
+AI Noise Suppression uses [nnnoiseless](https://github.com/jneem/nnnoiseless),
+a pure-Rust port of [RNNoise](https://github.com/xiph/rnnoise) (BSD-3-Clause)
+that includes the model weights. It is compiled into the executable, so no
+native DLL or C toolchain setup is needed.
 
 ## Building
 
 {: .warning }
-Close any running instance launched from `build/bin` before building. Locked files will fail the build.
+Close any running instance launched from `target/` or `build/bin` before building. A locked executable will fail the build on Windows.
 
 ### Command Line
 
+```bash
+cargo run                    # debug build (dependencies are optimized, so audio stays smooth)
+cargo build --release        # optimized build in target/release/
+cargo test
+python tools/check_lang.py   # checks lang/*.json against en.json
+```
+
+### Release Packages (Windows)
+
 ```powershell
-dotnet build EasyMICBooster.sln -c Release
+rustup target add x86_64-pc-windows-msvc i686-pc-windows-msvc aarch64-pc-windows-msvc
+.\build\build_release.bat    # or: .\build\build_release.ps1 -Arch x64
 ```
 
-### Build Script
+The script reads `version.txt` (and stops if `Cargo.toml` has a different
+version), builds each target with `cargo build --release --locked`, stages
+`EasyMICBooster.exe` with `LICENSE`, `THIRD-PARTY-NOTICES.txt` and `README.md`
+into `build/bin/<arch>`, and writes the portable zips (and, with Inno Setup,
+the installers) to `build/zip`. Targets that are not installed are skipped.
 
-```cmd
-.\build\build_release.bat
+### Release Packages (Linux / macOS)
+
+```bash
+bash build/build_linux.sh                              # host target
+bash build/build_linux.sh aarch64-unknown-linux-gnu    # explicit target
 ```
 
-Executables are written to `build/bin/x64` or `build/bin/x86`.
+Writes `build/zip/EasyMICBooster-<linux|macos>-<x64|arm64>-vX.Y.Z.tar.gz`.
+
+### Third-Party Notices
+
+After changing dependencies (`Cargo.lock`), regenerate the notices:
+
+```powershell
+cargo install --locked cargo-about
+.\build\gen_notices.ps1
+```
+
+### Releasing
+
+1. Update `version.txt` and `version` in `Cargo.toml` (then run `cargo check` to refresh `Cargo.lock`).
+2. Push a tag `vX.Y.Z`. The *Release* workflow builds all platforms and creates a draft GitHub release with the packages.
+3. Review the draft and publish it.
 
 ## Documentation Site
 

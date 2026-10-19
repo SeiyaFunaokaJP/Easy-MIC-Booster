@@ -1,0 +1,41 @@
+# cargo-about configuration for THIRD-PARTY-NOTICES.txt.
+# Regenerate with build/gen_notices.ps1 (or the cargo about command inside it).
+
+accepted = [
+    "MIT",
+    "MIT-0",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "BSL-1.0",
+    "MPL-2.0",
+    "OFL-1.1",
+    "CC0-1.0",
+    "Ubuntu-font-1.0",
+    "CDLA-Permissive-2.0",
+    "LicenseRef-UFL-1.0",
+]
+
+# Only the platforms Easy MIC Booster ships for.
+targets = [
+    "x86_64-pc-windows-msvc",
+    "i686-pc-windows-msvc",
+    "aarch64-pc-windows-msvc",
+    "x86_64-unknown-linux-gnu",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-apple-darwin",
+    "aarch64-apple-darwin",
+]
+
+# Build scripts and tests are not shipped in the binary.
+ignore-build-dependencies = true
+ignore-dev-dependencies = true
+
+# Built-in license clarifications for crates whose license files cargo-about
+# cannot classify on its own.
+workarounds = ["ring", "rustls"]

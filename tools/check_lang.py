@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check src/Lang/*.json against en.json.
+"""Check lang/*.json against en.json.
 
 Reports keys missing from or unknown to each language, and strings whose
 string.Format placeholders ({0}, {1:F1}, ...) differ from English. Missing
@@ -15,7 +15,7 @@ import re
 import sys
 from pathlib import Path
 
-LANG_DIR = Path(__file__).resolve().parent.parent / "src" / "Lang"
+LANG_DIR = Path(__file__).resolve().parent.parent / "lang"
 PLACEHOLDER = re.compile(r"\{\d+(?:,[-+]?\d+)?(?::[^}]*)?\}")
 
 
