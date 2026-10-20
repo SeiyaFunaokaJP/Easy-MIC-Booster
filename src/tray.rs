@@ -399,7 +399,7 @@ pub fn refresh() {
 
         let tooltip = format!(
             "Easy MIC Booster — {status_text}{}",
-            if ns { " · AI NS" } else { "" }
+            if ns { " · NS" } else { "" }
         );
         let on = running && s.boost_enabled;
         drop(c);

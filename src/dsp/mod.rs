@@ -2,9 +2,13 @@
 //! 48 kHz mono: noise suppression → EQ → gain → noise gate → limiter.
 
 pub mod biquad;
+#[cfg(deepfilter)]
+mod deepfilter;
 pub mod denoise;
 pub mod dynamics;
 pub mod resample;
+mod rnnoise;
+mod spectral;
 
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -12,7 +16,7 @@ use std::sync::{Arc, Mutex};
 use arc_swap::ArcSwap;
 use realfft::{RealFftPlanner, RealToComplex};
 
-use crate::config::{EqBand, MAX_EQ_POINTS};
+use crate::config::{EqBand, NoiseMethod, MAX_EQ_POINTS};
 use biquad::{Biquad, Coeffs};
 use denoise::Denoiser;
 use dynamics::{db_to_lin, Limiter, NoiseGate};
@@ -29,6 +33,7 @@ pub struct DspParams {
     pub bands: Vec<EqBand>,
     pub noise_suppression: bool,
     pub suppression_strength: f32,
+    pub suppression_method: NoiseMethod,
     pub gate_db: f32,
     pub limiter_ceiling_db: f32,
 }
@@ -41,6 +46,7 @@ impl Default for DspParams {
             bands: Vec::new(),
             noise_suppression: false,
             suppression_strength: 1.0,
+            suppression_method: NoiseMethod::Standard,
             gate_db: dynamics::GATE_OFF_DB,
             limiter_ceiling_db: -1.0,
         }
@@ -84,7 +90,7 @@ pub struct Meters {
     pub gate_open: AtomicBool,
     /// Smallest limiter gain since last read (1.0 = idle).
     pub limiter_gain: AtomicF32,
-    /// Speech probability from RNNoise.
+    /// Speech probability from the noise suppressor.
     pub vad: AtomicF32,
 }
 
@@ -267,8 +273,12 @@ impl Processor {
         m.input_peak.fetch_max(peak(block));
 
         if self.params.noise_suppression {
-            self.denoiser
-                .process(block, self.params.suppression_strength);
+            self.denoiser.process(
+                block,
+                self.params.suppression_strength,
+                self.params.suppression_method,
+                self.target_gain(),
+            );
             m.vad.store(self.denoiser.vad());
         }
 
@@ -347,13 +357,20 @@ mod tests {
                 (n as f32 * 0.031).sin() * 0.2 + ((n * 7919 % 1000) as f32 / 1000.0 - 0.5) * 0.02
             })
             .collect();
-        for ns in [false, true] {
+        let methods = [None].into_iter().chain(
+            NoiseMethod::ALL
+                .into_iter()
+                .filter(|m| m.available())
+                .map(Some),
+        );
+        for method in methods {
             let shared = Arc::new(DspShared::default());
             shared.ui_visible.store(false, Ordering::Relaxed);
             shared.set_params(DspParams {
                 boost: true,
                 gain_db: 32.0,
-                noise_suppression: ns,
+                noise_suppression: method.is_some(),
+                suppression_method: method.unwrap_or_default(),
                 gate_db: -50.0,
                 bands: vec![
                     EqBand::peaking(3000.0, 4.0, 1.0),
@@ -368,7 +385,7 @@ mod tests {
                 p.process(b);
             }
             let cpu = t.elapsed().as_secs_f64() / secs as f64 * 100.0;
-            println!("noise suppression {ns}: {cpu:.2}% of one core");
+            println!("noise suppression {method:?}: {cpu:.2}% of one core");
         }
     }
 

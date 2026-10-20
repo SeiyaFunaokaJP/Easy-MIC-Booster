@@ -4,7 +4,7 @@ version = "2.0.0"
 edition = "2021"
 rust-version = "1.85"
 description = "System-level microphone gain, AI noise suppression and EQ routed to a virtual audio device"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster"
 build = "build.rs"
 
@@ -46,6 +46,13 @@ windows = { version = "0.62", features = [
     "Win32_UI_Input_KeyboardAndMouse",
 ] }
 windows-core = "0.62"
+
+# DeepFilterNet3, the "high quality" noise suppressor (~25 MB with its model). Not on
+# crates.io past 0.2, so pinned to the release tag. tract assembles GNU-syntax kernels
+# on ARM64, which MSVC cannot, so ARM64 Windows goes without (see build.rs).
+[target.'cfg(not(all(windows, target_arch = "aarch64")))'.dependencies]
+deep_filter = { git = "https://github.com/Rikorose/DeepFilterNet", tag = "v0.5.6", default-features = false, features = ["tract", "default-model"] }
+ndarray = "0.15"
 
 [target.'cfg(not(windows))'.dependencies]
 ureq = { version = "3", default-features = false, features = ["rustls", "json"] }

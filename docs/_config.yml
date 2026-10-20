@@ -13,7 +13,7 @@ color_scheme: dark
 nav_sort: case_insensitive
 
 footer_content: >-
-  Easy MIC Booster is licensed under the <a href="https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/blob/main/LICENSE">MIT License</a>.
+  Easy MIC Booster is dual-licensed under the <a href="https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/blob/main/LICENSE-MIT">MIT License</a> or the <a href="https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/blob/main/LICENSE-APACHE">Apache License 2.0</a>.
 
 plugins:
   - jekyll-remote-theme

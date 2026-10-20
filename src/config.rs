@@ -111,6 +111,52 @@ pub enum EqMode {
     Equalizer,
 }
 
+/// Which noise suppressor runs when noise suppression is on.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Default)]
+pub enum NoiseMethod {
+    /// Spectral noise reduction: almost no CPU, best on steady noise (fans, hum, hiss).
+    Light,
+    /// RNNoise, a small neural network.
+    #[default]
+    Standard,
+    /// DeepFilterNet3: the cleanest result, but more CPU and 20 ms more latency.
+    HighQuality,
+}
+
+impl NoiseMethod {
+    pub const ALL: [NoiseMethod; 3] = [
+        NoiseMethod::Light,
+        NoiseMethod::Standard,
+        NoiseMethod::HighQuality,
+    ];
+
+    /// Whether this build includes the method (DeepFilterNet is left out on ARM64 Windows).
+    pub fn available(self) -> bool {
+        self != NoiseMethod::HighQuality || cfg!(deepfilter)
+    }
+
+    /// The method that actually runs in this build.
+    pub fn effective(self) -> Self {
+        if self.available() {
+            self
+        } else {
+            NoiseMethod::Standard
+        }
+    }
+}
+
+// Unknown names (from a newer version) fall back to the default instead of
+// failing the whole settings file.
+impl<'de> Deserialize<'de> for NoiseMethod {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        Ok(match String::deserialize(d)?.as_str() {
+            "Light" => NoiseMethod::Light,
+            "HighQuality" => NoiseMethod::HighQuality,
+            _ => NoiseMethod::Standard,
+        })
+    }
+}
+
 /// Everything a preset stores. Also the "sound" part of [`Settings`].
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
@@ -121,6 +167,7 @@ pub struct Sound {
     pub noise_gate_db: f32,
     pub noise_suppression: bool,
     pub suppression_strength: f32,
+    pub suppression_method: NoiseMethod,
 }
 
 impl Default for Sound {
@@ -132,6 +179,7 @@ impl Default for Sound {
             noise_gate_db: GATE_OFF_DB,
             noise_suppression: false,
             suppression_strength: 1.0,
+            suppression_method: NoiseMethod::default(),
         }
     }
 }
@@ -153,6 +201,7 @@ impl Sound {
             && close(self.noise_gate_db, other.noise_gate_db)
             && self.noise_suppression == other.noise_suppression
             && close(self.suppression_strength, other.suppression_strength)
+            && self.suppression_method == other.suppression_method
             && (self.mode == EqMode::Simple
                 || (self.bands.len() == other.bands.len()
                     && self.bands.iter().zip(&other.bands).all(|(a, b)| {
@@ -226,6 +275,7 @@ pub struct Preset {
     pub noise_gate_threshold: f32,
     pub noise_suppression: Option<bool>,
     pub suppression_strength: Option<f32>,
+    pub suppression_method: Option<NoiseMethod>,
     // v1.x view settings, kept so the files stay readable by v1.x.
     pub min_freq: f64,
     pub max_freq: f64,
@@ -243,6 +293,7 @@ impl Default for Preset {
             noise_gate_threshold: GATE_OFF_DB,
             noise_suppression: None,
             suppression_strength: None,
+            suppression_method: None,
             min_freq: 20.0,
             max_freq: 20_000.0,
             unlock_limit: false,
@@ -261,6 +312,7 @@ impl Preset {
             noise_gate_threshold: sound.noise_gate_db,
             noise_suppression: Some(sound.noise_suppression),
             suppression_strength: Some(sound.suppression_strength),
+            suppression_method: Some(sound.suppression_method),
             ..Default::default()
         }
     }
@@ -294,6 +346,9 @@ impl Preset {
             suppression_strength: self
                 .suppression_strength
                 .unwrap_or(current.suppression_strength),
+            suppression_method: self
+                .suppression_method
+                .unwrap_or(current.suppression_method),
         }
     }
 }
@@ -583,6 +638,7 @@ mod tests {
             noise_gate_db: -50.0,
             noise_suppression: true,
             suppression_strength: 0.8,
+            suppression_method: NoiseMethod::Light,
         };
         let p = Preset::from_sound("x", &sound);
         let back: Preset = serde_json::from_str(&serde_json::to_string(&p).unwrap()).unwrap();

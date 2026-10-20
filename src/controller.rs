@@ -170,6 +170,7 @@ impl Controller {
             bands: s.sound.active_bands().to_vec(),
             noise_suppression: s.sound.noise_suppression,
             suppression_strength: s.sound.suppression_strength,
+            suppression_method: s.sound.suppression_method.effective(),
             gate_db: s.sound.noise_gate_db,
             limiter_ceiling_db: s.limiter_ceiling_db,
         });

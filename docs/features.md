@@ -29,32 +29,43 @@ nav_order: 3
 Audio passes through DSP effects in the following order:
 
 ```
-Input → AI Noise Suppression → Equalizer → Gain → Noise Gate → Limiter → Output
+Input → Noise Suppression → Equalizer → Gain → Noise Gate → Limiter → Output
 ```
 
-The chain runs internally at 48 kHz mono — RNNoise's required format — so input
+The chain runs internally at 48 kHz mono — the format the noise suppressors expect — so input
 of any sample rate or channel count is converted up-front and the output is
 re-mixed by Windows for the destination device.
 
-## AI Noise Suppression (RNNoise)
+## Noise Suppression
 
-Removes constant background noise (fans, hiss, air conditioner) **and**
-non-stationary noise (keystrokes, mouse clicks, paper rustling) while
-preserving voice. Unlike a noise gate, this works **even while you are
-speaking** — the trained network separates speech from noise frame by frame.
+Removes background noise while preserving voice. Unlike a noise gate, this
+works **even while you are speaking**. Three methods are available:
+
+| Method | How it works | Good at | CPU (one core) | Latency |
+|:-------|:-------------|:--------|:---------------|:--------|
+| **Light** | Spectral noise reduction (Wiener filter, noise floor learned per frequency) | Steady noise: fans, hiss, air conditioner | ~0.05 % | +10 ms |
+| **Standard** | [RNNoise](https://github.com/xiph/rnnoise) neural network | Steady noise plus keystrokes and mouse clicks | ~0.5 % | +10 ms |
+| **High quality** | [DeepFilterNet3](https://github.com/Rikorose/DeepFilterNet) neural network, full band | The most natural voice, even with loud or changing noise | ~2 % | +40 ms |
 
 | Control | Description |
 |:--------|:------------|
-| **NS: ON / OFF** | Toggle button next to the Noise Gate section |
+| **Toggle** | Turns noise suppression on or off |
+| **Method** | Light / Standard / High quality (hover for details) |
+| **Strength** | Mix between the processed and the original signal |
 
-- Adds about 10 ms of latency when enabled (one 480-sample frame at 48 kHz).
-- Implemented with [nnnoiseless](https://github.com/jneem/nnnoiseless), a Rust
-  port of the [RNNoise](https://github.com/xiph/rnnoise) library
-  (BSD-3-Clause), built into the executable.
+- The method and strength are saved in presets.
+- High quality loads its model in the background the first time it is
+  selected (well under a second); until then the signal passes through
+  unprocessed. It is not available in the ARM64 Windows build.
+- Light needs a second or two to learn the noise after it is switched on.
+- All methods are built into the executable: Standard uses
+  [nnnoiseless](https://github.com/jneem/nnnoiseless), a Rust port of RNNoise
+  (BSD-3-Clause); High quality uses DeepFilterNet's `libDF` on the pure-Rust
+  [tract](https://github.com/sonos/tract) runtime (MIT / Apache-2.0).
 
 {: .note }
-The noise gate is still useful in addition to AI Noise Suppression — RNNoise
-attenuates noise but does not always reach absolute silence between phrases.
+The noise gate is still useful in addition to noise suppression — the
+suppressors attenuate noise but do not always reach absolute silence between phrases.
 The gate cleans up the residual floor.
 
 ## Noise Gate

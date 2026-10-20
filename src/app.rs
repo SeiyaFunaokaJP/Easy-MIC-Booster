@@ -12,8 +12,8 @@ use egui_phosphor::regular as icon;
 
 use crate::audio::{DeviceInfo, DeviceList, EngineStatus};
 use crate::config::{
-    BandType, DeviceProfile, EqBand, EqMode, Preset, Settings, Sound, DEFAULT_DEVICE_ID,
-    MAX_EQ_POINTS,
+    BandType, DeviceProfile, EqBand, EqMode, NoiseMethod, Preset, Settings, Sound,
+    DEFAULT_DEVICE_ID, MAX_EQ_POINTS,
 };
 use crate::controller::{builtin_presets, lock, PresetId, Shared};
 use crate::dsp::dynamics::GATE_OFF_DB;
@@ -173,6 +173,10 @@ pub struct App {
     allow_close: bool,
     /// `--minimized`: eframe shows the window after its first frame anyway, so hide it then.
     hide_frames: u8,
+    /// Content height of the taller of the noise suppression / gate cards last frame.
+    bottom_cards_h: f32,
+    /// Content width of the settings dialog last frame.
+    settings_width: f32,
 }
 
 impl App {
@@ -223,6 +227,8 @@ impl App {
             error: None,
             allow_close: false,
             hide_frames: if start_hidden { 2 } else { 0 },
+            bottom_cards_h: 0.0,
+            settings_width: 380.0,
             ctrl,
         }
     }
@@ -359,10 +365,17 @@ impl eframe::App for App {
                     .show(ui, |ui| {
                         self.sound_card(ui, &snap, avail);
                         ui.add_space(12.0);
-                        ui.columns(2, |cols| {
-                            self.suppression_card(&mut cols[0], &snap);
-                            self.gate_card(&mut cols[1], &snap);
+                        // Side by side at the same height, whichever needs more.
+                        let min_h = self.bottom_cards_h;
+                        let needed = ui.columns(2, |cols| {
+                            let a = self.suppression_card(&mut cols[0], &snap, min_h);
+                            let b = self.gate_card(&mut cols[1], &snap, min_h);
+                            a.max(b)
                         });
+                        if (needed - self.bottom_cards_h).abs() > 0.5 {
+                            self.bottom_cards_h = needed;
+                            ctx.request_repaint();
+                        }
                     });
             });
 
@@ -406,7 +419,8 @@ impl App {
                     }
                     ui.add_space(4.0);
                     ui.vertical(|ui| {
-                        ui.add_space(2.0);
+                        // Name and version read as one block.
+                        ui.spacing_mut().item_spacing.y = 0.0;
                         ui.label(
                             RichText::new("Easy MIC Booster")
                                 .font(bold_font(18.0))
@@ -573,7 +587,7 @@ impl App {
                     }
                 }
                 if s.sound.noise_suppression {
-                    chain.push("AI NS".into());
+                    chain.push("NS".into());
                 }
                 if s.sound.noise_gate_db > GATE_OFF_DB {
                     chain.push("Gate".into());
@@ -802,7 +816,8 @@ impl App {
                             badge(ui, &tr("Preset_Modified"), WARN);
                         }
                     });
-                    ui.horizontal(|ui| {
+                    // Wraps: the translated labels can be wider than the side panel.
+                    ui.horizontal_wrapped(|ui| {
                         let is_user = matches!(snap.current, Some(PresetId::User(_)));
                         if is_user
                             && snap.modified
@@ -978,7 +993,12 @@ fn preset_row(
         let menu_rect =
             Rect::from_center_size(pos2(rect.right() - 18.0, rect.center().y), vec2(28.0, 28.0));
         if hovered || selected {
-            let mut child = ui.new_child(egui::UiBuilder::new().max_rect(menu_rect));
+            // Grows leftwards from the row's edge: the button is wider than `menu_rect`.
+            let mut child = ui.new_child(
+                egui::UiBuilder::new()
+                    .max_rect(menu_rect)
+                    .layout(Layout::right_to_left(Align::Center)),
+            );
             child.menu_button(RichText::new(icon::DOTS_THREE).font(font(16.0)), |ui| {
                 ui.set_min_width(190.0);
                 if ui
@@ -1045,7 +1065,7 @@ impl App {
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     let labels = [tr("Mode_Simple"), tr("Mode_Equalizer")];
                     let sel = if s.sound.mode == EqMode::Simple { 0 } else { 1 };
-                    if let Some(i) = segmented(ui, &labels, sel) {
+                    if let Some(i) = segmented(ui, &labels, &[], sel) {
                         lock(&self.ctrl).set_mode(if i == 0 {
                             EqMode::Simple
                         } else {
@@ -1057,12 +1077,8 @@ impl App {
 
             // Gain.
             ui.horizontal(|ui| {
-                ui.label(dim(tr("Label_Gain")));
-                ui.label(
-                    RichText::new(format_db(s.sound.gain_db))
-                        .font(bold_font(24.0))
-                        .color(if s.boost_enabled { TEXT } else { TEXT_FAINT }),
-                );
+                let color = if s.boost_enabled { TEXT } else { TEXT_FAINT };
+                caption_value(ui, &tr("Label_Gain"), &format_db(s.sound.gain_db), color);
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     let mut g = s.sound.gain_db;
                     let step = |ui: &mut Ui, label: &str, d: f32, g: &mut f32| {
@@ -1117,98 +1133,102 @@ impl App {
     fn eq_toolbar(&mut self, ui: &mut Ui, sound: &Sound) {
         let mut bands = sound.bands.clone();
         let mut changed = false;
-        ui.horizontal_wrapped(|ui| {
-            if let Some(i) = self.graph.selected.filter(|&i| i < bands.len()) {
-                let color = POINT_COLORS[i % POINT_COLORS.len()];
-                ui.label(
-                    RichText::new(format!("#{}", i + 1))
-                        .font(bold_font(13.0))
-                        .color(color),
-                );
-                let b = &mut bands[i];
-                egui::ComboBox::from_id_salt("bandtype")
-                    .width(120.0)
-                    .selected_text(band_type_label(b.band_type))
-                    .show_ui(ui, |ui| {
-                        for t in BandType::ALL {
-                            if ui
-                                .selectable_label(b.band_type == t, band_type_label(t))
-                                .clicked()
-                            {
-                                set_band_type(b, t);
-                                changed = true;
-                            }
-                        }
-                    });
-                let mut f = b.frequency;
-                let speed = (f * 0.01).max(0.5);
-                let r = ui.add(
-                    egui::DragValue::new(&mut f)
-                        .range(20.0..=20_000.0)
-                        .speed(speed)
-                        .custom_formatter(|v, _| format_freq(v as f32))
-                        .custom_parser(parse_freq),
-                );
-                if r.changed() {
-                    b.frequency = f;
-                    changed = true;
-                }
-                if b.band_type.has_gain() {
-                    changed |= ui
-                        .add(
-                            egui::DragValue::new(&mut b.gain)
-                                .range(-24.0..=24.0)
-                                .speed(0.1)
-                                .suffix(" dB")
-                                .fixed_decimals(1),
-                        )
-                        .changed();
-                }
-                if b.band_type.has_q() {
-                    changed |= ui
-                        .add(
-                            egui::DragValue::new(&mut b.q)
-                                .range(0.1..=12.0)
-                                .speed(0.01)
-                                .prefix("Q ")
-                                .fixed_decimals(2),
-                        )
-                        .changed();
-                }
-                if icon_button(ui, icon::TRASH, &tr("Eq_DeletePoint")).clicked() {
-                    bands.remove(i);
-                    self.graph.selected = None;
-                    changed = true;
-                }
-            } else {
-                ui.label(faint(tr("Help_Text")));
+        // Buttons first from the right, then the band editor or the hint wraps
+        // in whatever width is left so the two never overlap.
+        ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
+            if ui
+                .add_enabled(
+                    !bands.is_empty(),
+                    egui::Button::new(format!(
+                        "{}  {}",
+                        icon::ARROW_COUNTER_CLOCKWISE,
+                        tr("Eq_Reset")
+                    )),
+                )
+                .clicked()
+            {
+                bands.clear();
+                self.graph.selected = None;
+                changed = true;
             }
-            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                if ui
-                    .add_enabled(
-                        !bands.is_empty(),
-                        egui::Button::new(format!(
-                            "{}  {}",
-                            icon::ARROW_COUNTER_CLOCKWISE,
-                            tr("Eq_Reset")
-                        )),
-                    )
-                    .clicked()
-                {
-                    bands.clear();
-                    self.graph.selected = None;
-                    changed = true;
-                }
-                if ui
-                    .add_enabled(
-                        bands.len() < MAX_EQ_POINTS,
-                        egui::Button::new(format!("{}  {}", icon::PLUS, tr("Btn_AddPoint"))),
-                    )
-                    .clicked()
-                {
-                    bands.push(EqBand::peaking(1000.0, 0.0, 1.0));
-                    self.graph.selected = Some(bands.len() - 1);
-                    changed = true;
+            if ui
+                .add_enabled(
+                    bands.len() < MAX_EQ_POINTS,
+                    egui::Button::new(format!("{}  {}", icon::PLUS, tr("Btn_AddPoint"))),
+                )
+                .clicked()
+            {
+                bands.push(EqBand::peaking(1000.0, 0.0, 1.0));
+                self.graph.selected = Some(bands.len() - 1);
+                changed = true;
+            }
+            ui.add_space(8.0);
+            let left = Layout::left_to_right(Align::Center).with_main_wrap(true);
+            ui.allocate_ui_with_layout(vec2(ui.available_width(), 0.0), left, |ui| {
+                if let Some(i) = self.graph.selected.filter(|&i| i < bands.len()) {
+                    let color = POINT_COLORS[i % POINT_COLORS.len()];
+                    ui.label(
+                        RichText::new(format!("#{}", i + 1))
+                            .font(bold_font(13.0))
+                            .color(color),
+                    );
+                    let b = &mut bands[i];
+                    egui::ComboBox::from_id_salt("bandtype")
+                        .width(120.0)
+                        .selected_text(band_type_label(b.band_type))
+                        .show_ui(ui, |ui| {
+                            for t in BandType::ALL {
+                                if ui
+                                    .selectable_label(b.band_type == t, band_type_label(t))
+                                    .clicked()
+                                {
+                                    set_band_type(b, t);
+                                    changed = true;
+                                }
+                            }
+                        });
+                    let mut f = b.frequency;
+                    let speed = (f * 0.01).max(0.5);
+                    let r = ui.add(
+                        egui::DragValue::new(&mut f)
+                            .range(20.0..=20_000.0)
+                            .speed(speed)
+                            .custom_formatter(|v, _| format_freq(v as f32))
+                            .custom_parser(parse_freq),
+                    );
+                    if r.changed() {
+                        b.frequency = f;
+                        changed = true;
+                    }
+                    if b.band_type.has_gain() {
+                        changed |= ui
+                            .add(
+                                egui::DragValue::new(&mut b.gain)
+                                    .range(-24.0..=24.0)
+                                    .speed(0.1)
+                                    .suffix(" dB")
+                                    .fixed_decimals(1),
+                            )
+                            .changed();
+                    }
+                    if b.band_type.has_q() {
+                        changed |= ui
+                            .add(
+                                egui::DragValue::new(&mut b.q)
+                                    .range(0.1..=12.0)
+                                    .speed(0.01)
+                                    .prefix("Q ")
+                                    .fixed_decimals(2),
+                            )
+                            .changed();
+                    }
+                    if icon_button(ui, icon::TRASH, &tr("Eq_DeletePoint")).clicked() {
+                        bands.remove(i);
+                        self.graph.selected = None;
+                        changed = true;
+                    }
+                } else {
+                    ui.add(egui::Label::new(faint(tr("Help_Text"))).wrap());
                 }
             });
         });
@@ -1217,9 +1237,9 @@ impl App {
         }
     }
 
-    fn suppression_card(&mut self, ui: &mut Ui, snap: &Snapshot) {
+    fn suppression_card(&mut self, ui: &mut Ui, snap: &Snapshot, min_h: f32) -> f32 {
         let s = &snap.settings.sound;
-        card(ui, |ui| {
+        card_min_height(ui, min_h, |ui| {
             ui.horizontal(|ui| {
                 section_title(ui, icon::SPARKLE, &tr("Group_NoiseSuppression"));
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -1231,6 +1251,34 @@ impl App {
             });
             ui.label(faint(tr("Help_NoiseSuppression")));
             ui.add_enabled_ui(s.noise_suppression, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label(dim(tr("Label_Method")));
+                    let methods: Vec<NoiseMethod> = NoiseMethod::ALL
+                        .into_iter()
+                        .filter(|m| m.available())
+                        .collect();
+                    let key = |m: &NoiseMethod| match m {
+                        NoiseMethod::Light => "Light",
+                        NoiseMethod::Standard => "Standard",
+                        NoiseMethod::HighQuality => "HighQuality",
+                    };
+                    let labels: Vec<String> = methods
+                        .iter()
+                        .map(|m| tr(&format!("NS_{}", key(m))))
+                        .collect();
+                    let tips: Vec<String> = methods
+                        .iter()
+                        .map(|m| tr(&format!("Tip_NS_{}", key(m))))
+                        .collect();
+                    let current = s.suppression_method.effective();
+                    let sel = methods.iter().position(|&m| m == current).unwrap_or(0);
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        if let Some(i) = segmented(ui, &labels, &tips, sel) {
+                            let m = methods[i];
+                            lock(&self.ctrl).edit_sound(|x| x.suppression_method = m);
+                        }
+                    });
+                });
                 ui.horizontal(|ui| {
                     ui.label(dim(tr("Label_Strength")));
                     let mut v = s.suppression_strength * 100.0;
@@ -1258,13 +1306,14 @@ impl App {
                     meter(ui, vad, 0.0, 6.0, false);
                 });
             });
-        });
+        })
+        .1
     }
 
-    fn gate_card(&mut self, ui: &mut Ui, snap: &Snapshot) {
+    fn gate_card(&mut self, ui: &mut Ui, snap: &Snapshot, min_h: f32) -> f32 {
         let s = &snap.settings.sound;
         let on = s.noise_gate_db > GATE_OFF_DB;
-        card(ui, |ui| {
+        card_min_height(ui, min_h, |ui| {
             ui.horizontal(|ui| {
                 section_title(ui, icon::DOOR, &tr("Group_NoiseGate"));
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -1346,8 +1395,42 @@ impl App {
                     ui.label(faint(tr("Gate_Off")));
                 }
             });
-        });
+        })
+        .1
     }
+}
+
+/// A small caption followed by a large value. The caption is centered on the
+/// value's digits: on a shared baseline it looks sunk, and centered on the
+/// line boxes it floats above them.
+fn caption_value(ui: &mut Ui, caption: &str, value: &str, color: Color32) {
+    let (cap_size, big_size) = (12.5, 24.0);
+    let p = ui.painter();
+    let cap = p.layout_no_wrap(caption.to_string(), font(cap_size), TEXT_DIM);
+    let big = p.layout_no_wrap(value.to_string(), bold_font(big_size), color);
+    let baseline = |g: &egui::Galley| {
+        g.rows
+            .first()
+            .and_then(|r| r.glyphs.first())
+            .map_or(g.size().y, |gl| gl.pos.y)
+    };
+    let gap = 8.0;
+    let size = vec2(cap.size().x + gap + big.size().x, big.size().y);
+    let (rect, _) = ui.allocate_exact_size(size, Sense::hover());
+    // Digits fill ~0.7 em above the baseline, kana ~0.8 em (Yu Gothic UI / Segoe UI).
+    let mid = rect.top() + baseline(&big) - 0.35 * big_size;
+    let cap_baseline = mid + 0.4 * cap_size;
+    let p = ui.painter();
+    p.galley(
+        pos2(rect.left(), cap_baseline - baseline(&cap)),
+        cap.clone(),
+        TEXT_DIM,
+    );
+    p.galley(
+        pos2(rect.left() + cap.size().x + gap, rect.top()),
+        big,
+        color,
+    );
 }
 
 fn parse_freq(s: &str) -> Option<f64> {
@@ -1530,7 +1613,15 @@ impl App {
                     keep &= !cancel;
                 }
                 Dialog::Settings => {
+                    // As wide as its widest row (that depends on the language), so
+                    // the close button sits on the same edge as the rest.
+                    ui.set_width(self.settings_width);
                     keep = self.settings_dialog(ui, snap);
+                    let w = ui.min_rect().width();
+                    if (w - self.settings_width).abs() > 0.5 {
+                        self.settings_width = w;
+                        ctx.request_repaint();
+                    }
                 }
             }
         });
@@ -1666,6 +1757,12 @@ impl App {
             {
                 platform::open_url("https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster");
             }
+            if ui
+                .button(format!("{}  {}", icon::HEART, tr("Btn_Sponsor")))
+                .clicked()
+            {
+                platform::open_url("https://github.com/sponsors/SeiyaFunaokaJP");
+            }
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 if ui
                     .button(
@@ -1680,7 +1777,7 @@ impl App {
         });
         ui.add_space(4.0);
         ui.label(faint(format!(
-            "Easy MIC Booster v{} · MIT License",
+            "Easy MIC Booster v{} · MIT OR Apache-2.0",
             update::current_version()
         )));
         keep

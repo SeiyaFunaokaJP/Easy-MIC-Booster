@@ -2,8 +2,16 @@
 
 use std::sync::Arc;
 
-/// (regular UI font, bold UI font, CJK fallbacks)
-type SystemFonts = (Option<Vec<u8>>, Option<Vec<u8>>, Vec<Vec<u8>>);
+/// A font file's bytes and the face to use inside it (for .ttc collections).
+type Face = (Vec<u8>, u32);
+
+/// Fonts found on the system; `None` / empty falls back to egui's own.
+struct SystemFonts {
+    regular: Option<Face>,
+    bold: Option<Face>,
+    cjk: Option<Face>,
+    cjk_bold: Option<Face>,
+}
 
 use eframe::egui::{
     self, Color32, CornerRadius, FontData, FontDefinitions, FontFamily, FontId, Margin, Stroke,
@@ -55,42 +63,76 @@ pub fn mono(size: f32) -> FontId {
     FontId::monospace(size)
 }
 
-fn read_first(paths: &[&str]) -> Option<Vec<u8>> {
-    paths.iter().find_map(|p| std::fs::read(p).ok())
+/// The first readable font. A `#n` suffix picks face `n` of a collection.
+fn read_first<S: AsRef<str>>(paths: &[S]) -> Option<Face> {
+    paths.iter().find_map(|p| {
+        let (path, index) = match p.as_ref().rsplit_once('#') {
+            Some((path, i)) => (path, i.parse().ok()?),
+            None => (p.as_ref(), 0),
+        };
+        std::fs::read(path).ok().map(|b| (b, index))
+    })
 }
 
 #[cfg(windows)]
 fn system_fonts(lang: &str) -> SystemFonts {
     let fonts = std::env::var("WINDIR").unwrap_or_else(|_| r"C:\Windows".into()) + r"\Fonts\";
     let p = |n: &str| format!("{fonts}{n}");
-    let regular = read_first(&[&p("segoeui.ttf")]);
-    let bold = read_first(&[&p("seguisb.ttf"), &p("segoeuib.ttf")]);
-    let ja = [p("YuGothM.ttc"), p("meiryo.ttc"), p("msgothic.ttc")];
-    let zh_cn = [p("msyh.ttc"), p("simsun.ttc")];
-    let zh_tw = [p("msjh.ttc"), p("mingliu.ttc")];
+    // The "UI" faces of the CJK collections: the default faces (Yu Gothic,
+    // Meiryo) carry a half-em line gap or a deep descent that egui adds below
+    // every line, so all text would sit visibly high in its widget.
+    let ja = [p("YuGothM.ttc#1"), p("meiryo.ttc#2"), p("msgothic.ttc")];
+    let ja_bold = [p("YuGothB.ttc#2"), p("meiryob.ttc#2")];
+    let zh_cn = [p("msyh.ttc#1"), p("simsun.ttc")];
+    let zh_cn_bold = [p("msyhbd.ttc#1")];
+    let zh_tw = [p("msjh.ttc#1"), p("mingliu.ttc")];
+    let zh_tw_bold = [p("msjhbd.ttc#1")];
     let ko = [p("malgun.ttf"), p("gulim.ttc")];
-    (regular, bold, cjk(lang, &ja, &zh_cn, &zh_tw, &ko))
+    let ko_bold = [p("malgunbd.ttf")];
+    let (cjk, cjk_bold) = match lang {
+        "zh-CN" => (read_first(&zh_cn), read_first(&zh_cn_bold)),
+        "zh-TW" => (read_first(&zh_tw), read_first(&zh_tw_bold)),
+        "ko" => (read_first(&ko), read_first(&ko_bold)),
+        "ja" => (read_first(&ja), read_first(&ja_bold)),
+        _ => (None, None),
+    };
+    SystemFonts {
+        regular: read_first(&[p("segoeui.ttf")]),
+        bold: read_first(&[p("seguisb.ttf"), p("segoeuib.ttf")]),
+        cjk: cjk.or_else(|| cjk_any(&[&ja, &zh_cn, &zh_tw, &ko])),
+        cjk_bold,
+    }
 }
 
 #[cfg(target_os = "macos")]
 fn system_fonts(lang: &str) -> SystemFonts {
-    let s = |n: &str| n.to_string();
     let ja = [
-        s("/System/Library/Fonts/ヒラギノ角ゴシック W4.ttc"),
-        s("/System/Library/Fonts/Hiragino Sans GB.ttc"),
+        "/System/Library/Fonts/ヒラギノ角ゴシック W4.ttc",
+        "/System/Library/Fonts/Hiragino Sans GB.ttc",
     ];
     let zh_cn = [
-        s("/System/Library/Fonts/PingFang.ttc"),
-        s("/System/Library/Fonts/Hiragino Sans GB.ttc"),
+        "/System/Library/Fonts/PingFang.ttc",
+        "/System/Library/Fonts/Hiragino Sans GB.ttc",
     ];
-    let zh_tw = [s("/System/Library/Fonts/PingFang.ttc")];
-    let ko = [s("/System/Library/Fonts/AppleSDGothicNeo.ttc")];
-    (None, None, cjk(lang, &ja, &zh_cn, &zh_tw, &ko))
+    let zh_tw = ["/System/Library/Fonts/PingFang.ttc"];
+    let ko = ["/System/Library/Fonts/AppleSDGothicNeo.ttc"];
+    let own = match lang {
+        "zh-CN" => read_first(&zh_cn),
+        "zh-TW" => read_first(&zh_tw),
+        "ko" => read_first(&ko),
+        _ => read_first(&ja),
+    };
+    SystemFonts {
+        regular: None,
+        bold: None,
+        cjk: own.or_else(|| cjk_any(&[&ja[..], &zh_cn, &zh_tw, &ko])),
+        cjk_bold: None,
+    }
 }
 
 #[cfg(all(unix, not(target_os = "macos")))]
-fn system_fonts(lang: &str) -> SystemFonts {
-    let noto: Vec<String> = [
+fn system_fonts(_lang: &str) -> SystemFonts {
+    let noto = [
         "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
         "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
         "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc",
@@ -98,54 +140,33 @@ fn system_fonts(lang: &str) -> SystemFonts {
         "/usr/share/fonts/OTF/NotoSansCJK-Regular.ttc",
         "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
         "/usr/share/fonts/wenquanyi/wqy-microhei/wqy-microhei.ttc",
-    ]
-    .iter()
-    .map(|s| s.to_string())
-    .collect();
-    let _ = lang;
-    (
-        None,
-        None,
-        read_first(&noto.iter().map(|s| s.as_str()).collect::<Vec<_>>())
-            .into_iter()
-            .collect(),
-    )
+    ];
+    SystemFonts {
+        regular: None,
+        bold: None,
+        cjk: read_first(&noto),
+        cjk_bold: None,
+    }
 }
 
-/// The CJK font for `lang` first (so its glyph shapes win), then one fallback.
-#[allow(dead_code)]
-fn cjk(
-    lang: &str,
-    ja: &[String],
-    zh_cn: &[String],
-    zh_tw: &[String],
-    ko: &[String],
-) -> Vec<Vec<u8>> {
-    let order: [&[String]; 4] = match lang {
-        "zh-CN" => [zh_cn, ja, zh_tw, ko],
-        "zh-TW" => [zh_tw, ja, zh_cn, ko],
-        "ko" => [ko, ja, zh_cn, zh_tw],
-        _ => [ja, zh_cn, zh_tw, ko],
-    };
-    let mut out = Vec::new();
-    for group in order {
-        if let Some(bytes) = read_first(&group.iter().map(|s| s.as_str()).collect::<Vec<_>>()) {
-            out.push(bytes);
-            // One CJK font covers kanji/kana/hanzi; each is 10–20 MB in memory.
-            break;
-        }
-    }
-    out
+/// Any CJK font, for non-CJK UIs that still show CJK device or preset names.
+/// Only one: each is 10–20 MB in memory.
+fn cjk_any<S: AsRef<str>>(groups: &[&[S]]) -> Option<Face> {
+    groups.iter().find_map(|g| read_first(g))
+}
+
+fn add_font(fonts: &mut FontDefinitions, name: &str, (bytes, index): Face) {
+    let mut data = FontData::from_owned(bytes);
+    data.index = index;
+    fonts.font_data.insert(name.into(), Arc::new(data));
 }
 
 pub fn install_fonts(ctx: &egui::Context, lang: &str) {
     let mut fonts = FontDefinitions::default();
-    let (regular, bold_face, cjk) = system_fonts(lang);
+    let sys = system_fonts(lang);
 
-    if let Some(r) = regular {
-        fonts
-            .font_data
-            .insert("ui".into(), Arc::new(FontData::from_owned(r)));
+    if let Some(r) = sys.regular {
+        add_font(&mut fonts, "ui", r);
         fonts
             .families
             .get_mut(&FontFamily::Proportional)
@@ -153,33 +174,43 @@ pub fn install_fonts(ctx: &egui::Context, lang: &str) {
             .insert(0, "ui".into());
     }
     let mut bold_family = fonts.families[&FontFamily::Proportional].clone();
-    if let Some(b) = bold_face {
-        fonts
-            .font_data
-            .insert("ui-bold".into(), Arc::new(FontData::from_owned(b)));
+    if let Some(b) = sys.bold {
+        add_font(&mut fonts, "ui-bold", b);
         bold_family.insert(0, "ui-bold".into());
     }
     // For CJK UIs the CJK font goes first: mixing its metrics with Segoe UI's
     // on one line puts Latin words on a different baseline.
     let cjk_first = matches!(lang, "ja" | "zh-CN" | "zh-TW" | "ko");
-    for (i, bytes) in cjk.into_iter().enumerate() {
-        let name = format!("cjk{i}");
-        fonts
-            .font_data
-            .insert(name.clone(), Arc::new(FontData::from_owned(bytes)));
-        let prop = fonts.families.get_mut(&FontFamily::Proportional).unwrap();
-        if cjk_first && i == 0 {
-            prop.insert(0, name.clone());
-            bold_family.insert(0, name.clone());
+    let place = |family: &mut Vec<String>, name: &str| {
+        if cjk_first {
+            family.insert(0, name.into());
         } else {
-            prop.push(name.clone());
-            bold_family.push(name.clone());
+            family.push(name.into());
         }
+    };
+    if let Some(c) = sys.cjk {
+        add_font(&mut fonts, "cjk", c);
+        place(
+            fonts.families.get_mut(&FontFamily::Proportional).unwrap(),
+            "cjk",
+        );
         fonts
             .families
             .get_mut(&FontFamily::Monospace)
             .unwrap()
-            .push(name);
+            .push("cjk".into());
+        // Bold falls back to the regular CJK face when there is no bold one.
+        if sys.cjk_bold.is_none() {
+            place(&mut bold_family, "cjk");
+        }
+    }
+    if let Some(c) = sys.cjk_bold {
+        add_font(&mut fonts, "cjk-bold", c);
+        place(&mut bold_family, "cjk-bold");
+        // Glyphs the bold face lacks still come from the regular one.
+        if fonts.font_data.contains_key("cjk") {
+            bold_family.push("cjk".into());
+        }
     }
     fonts.families.insert(bold(), bold_family);
     egui_phosphor::add_to_fonts(&mut fonts, egui_phosphor::Variant::Regular);

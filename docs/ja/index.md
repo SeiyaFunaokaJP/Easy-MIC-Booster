@@ -10,19 +10,19 @@ has_children: true
 Windows 向けマイクゲイン増幅 & 高品質音声処理ツール。
 {: .fs-6 .fw-300 }
 
-WASAPI でマイク入力をキャプチャし、AI ノイズ抑制（RNNoise）・イコライザー・ノイズゲート・リミッターを通して、VB-CABLE などの仮想オーディオデバイスへ出力します。
+WASAPI でマイク入力をキャプチャし、ノイズ抑制（スペクトル方式・RNNoise・DeepFilterNet3）・イコライザー・ノイズゲート・リミッターを通して、VB-CABLE などの仮想オーディオデバイスへ出力します。
 
 [使い方を見る](user-guide){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [GitHub](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster){: .btn .fs-5 .mb-4 .mb-md-0 }
 
-![Easy MIC Booster Top Screen](../images/app_top.jpg)
+![Easy MIC Booster Top Screen](../images/app_top.png)
 
 ---
 
 ## 主な機能
 
 - **ソフトウェアアンプ** -- マイクのゲイン不足をシステムレベルで解消
-- **AI ノイズ抑制** -- RNNoise によるファン音・打鍵音などの背景雑音除去（発話中でも有効）
+- **ノイズ抑制** -- ファン音・打鍵音などの背景雑音除去（発話中でも有効）。軽量・標準（RNNoise）・高精度（DeepFilterNet3）から選択
 - **ノイズゲート** -- 発話していない無音区間を完全に消音
 - **パラメトリックイコライザー** -- 視覚的なグラフ操作とプリセット保存
 - **リミッター** -- 突発的な大音量による音割れを防止
@@ -38,7 +38,7 @@ WASAPI でマイク入力をキャプチャし、AI ノイズ抑制（RNNoise）
  WASAPI キャプチャ (PCM)
    │
    ▼
- DSP チェーン (RNNoise → イコライザー → ゲイン → ノイズゲート → リミッター)
+ DSP チェーン (ノイズ抑制 → イコライザー → ゲイン → ノイズゲート → リミッター)
    │
    ▼
  仮想オーディオデバイス (VB-CABLE Input)

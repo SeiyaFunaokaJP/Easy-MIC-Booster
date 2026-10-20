@@ -6,7 +6,7 @@
 #
 # Reads the version from version.txt (fails if Cargo.toml disagrees), runs
 # `cargo build --release --locked --target <triple>`, stages the binary with
-# LICENSE, THIRD-PARTY-NOTICES.txt and README.md into
+# LICENSE-MIT, LICENSE-APACHE, THIRD-PARTY-NOTICES.txt and README.md into
 # build/bin/<os>-<arch>/EasyMICBooster/
 # and writes build/zip/EasyMICBooster-<os>-<arch>-v<ver>.tar.gz
 # (<os> = linux | macos, <arch> = x64 | arm64).
@@ -20,7 +20,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BIN_DIR="$ROOT/build/bin"
 ZIP_DIR="$ROOT/build/zip"
-SHIP_FILES=(LICENSE THIRD-PARTY-NOTICES.txt README.md)
+SHIP_FILES=(LICENSE-MIT LICENSE-APACHE THIRD-PARTY-NOTICES.txt README.md)
 
 die() { echo "error: $*" >&2; exit 1; }
 

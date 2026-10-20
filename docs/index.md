@@ -9,19 +9,19 @@ nav_order: 1
 Microphone gain amplification & high-quality audio processing for Windows.
 {: .fs-6 .fw-300 }
 
-Captures microphone input via WASAPI, processes it through AI Noise Suppression (RNNoise), Equalizer, Noise Gate, and Limiter, and routes it to a virtual audio device such as VB-CABLE.
+Captures microphone input via WASAPI, processes it through Noise Suppression (spectral, RNNoise or DeepFilterNet3), Equalizer, Noise Gate, and Limiter, and routes it to a virtual audio device such as VB-CABLE.
 
 [Get Started](user-guide){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [GitHub](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster){: .btn .fs-5 .mb-4 .mb-md-0 }
 
-![Easy MIC Booster Top Screen](images/app_top.jpg)
+![Easy MIC Booster Top Screen](images/app_top.png)
 
 ---
 
 ## Key Features
 
 - **Software Amplifier** -- eliminates microphone gain shortage at the system level
-- **AI Noise Suppression** -- RNNoise-based removal of fans, keystrokes, and other background noise even while you speak
+- **Noise Suppression** -- removal of fans, keystrokes, and other background noise even while you speak; Light, Standard (RNNoise) or High quality (DeepFilterNet3)
 - **Noise Gate** -- mutes the channel between phrases for completely silent gaps
 - **Parametric Equalizer** -- visual graph editing with savable presets
 - **Limiter** -- prevents clipping from sudden loud noises
@@ -37,7 +37,7 @@ Microphone Input
  WASAPI Capture (PCM)
        │
        ▼
- DSP Chain (RNNoise → Equalizer → Gain → Noise Gate → Limiter)
+ DSP Chain (Noise Suppression → Equalizer → Gain → Noise Gate → Limiter)
        │
        ▼
  Virtual Audio Device (VB-CABLE Input)

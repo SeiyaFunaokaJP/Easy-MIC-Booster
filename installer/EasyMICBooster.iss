@@ -3,8 +3,10 @@
 ; Built by build\build_release.ps1 (and .github\workflows\release.yml) from the
 ; staged release folder, so the installer and the portable zip contain the same
 ; files: EasyMICBooster.exe (a single self-contained binary with the languages
-; embedded), LICENSE, THIRD-PARTY-NOTICES.txt and README.md.
-;   ISCC /DAppVersion=<ver> /DArch=x64|x86|arm64 /DPkgDir=<dir> /DOutputDir=<dir> EasyMICBooster.iss
+; embedded), LICENSE-MIT, LICENSE-APACHE, THIRD-PARTY-NOTICES.txt and README.md.
+;   ISCC /DAppVersion=<ver> /DArch=x64|x86|arm64 /DPkgDir=<dir> /DOutputDir=<dir> [/DLicensePage=<file>] EasyMICBooster.iss
+; LicensePage is the text for the license page (build_release.ps1 combines
+; both licenses); without it the page shows LICENSE-MIT.
 
 #ifndef AppVersion
   #error AppVersion is not defined
@@ -61,7 +63,11 @@ UninstallDisplayIcon={app}\{#AppExe}
 UninstallDisplayName={#AppName}
 WizardStyle=modern
 ShowLanguageDialog=auto
-LicenseFile=..\LICENSE
+#ifdef LicensePage
+LicenseFile={#LicensePage}
+#else
+LicenseFile=..\LICENSE-MIT
+#endif
 Compression=lzma2/max
 SolidCompression=yes
 OutputDir={#OutputDir}
@@ -92,7 +98,8 @@ Type: filesandordirs; Name: "{app}\runtimes"
 
 [Files]
 Source: "{#PkgDir}\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#PkgDir}\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#PkgDir}\LICENSE-MIT"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#PkgDir}\LICENSE-APACHE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#PkgDir}\THIRD-PARTY-NOTICES.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#PkgDir}\README.md"; DestDir: "{app}"; Flags: ignoreversion
 
