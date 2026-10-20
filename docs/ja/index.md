@@ -10,7 +10,7 @@ has_children: true
 Windows 向けマイクゲイン増幅 & 高品質音声処理ツール。
 {: .fs-6 .fw-300 }
 
-NAudio でマイク入力をキャプチャし、AI ノイズ抑制（RNNoise）・イコライザー・ノイズゲート・リミッターを通して、VB-CABLE などの仮想オーディオデバイスへ出力します。
+WASAPI でマイク入力をキャプチャし、AI ノイズ抑制（RNNoise）・イコライザー・ノイズゲート・リミッターを通して、VB-CABLE などの仮想オーディオデバイスへ出力します。
 
 [使い方を見る](user-guide){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [GitHub](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster){: .btn .fs-5 .mb-4 .mb-md-0 }
@@ -35,7 +35,7 @@ NAudio でマイク入力をキャプチャし、AI ノイズ抑制（RNNoise）
 マイク入力
    │
    ▼
- NAudio キャプチャ (PCM)
+ WASAPI キャプチャ (PCM)
    │
    ▼
  DSP チェーン (RNNoise → イコライザー → ゲイン → ノイズゲート → リミッター)

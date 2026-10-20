@@ -1,0 +1,79 @@
+[package]
+name = "easy-mic-booster"
+version = "2.0.0"
+edition = "2021"
+rust-version = "1.85"
+description = "System-level microphone gain, AI noise suppression and EQ routed to a virtual audio device"
+license = "MIT"
+repository = "https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster"
+build = "build.rs"
+
+[[bin]]
+name = "EasyMICBooster"
+path = "src/main.rs"
+
+[dependencies]
+eframe = { version = "0.36", default-features = false, features = ["wgpu", "default_fonts"] }
+egui-phosphor = "0.14"
+cpal = "0.17"
+nnnoiseless = { version = "0.5", default-features = false }
+realfft = "3.5"
+arc-swap = "1.7"
+rtrb = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tray-icon = "0.26"
+image = { version = "0.25", default-features = false, features = ["png", "ico"] }
+sys-locale = "0.3"
+dirs = "6"
+
+[target.'cfg(windows)'.dependencies]
+# The OS TLS stack (SChannel): rustls/ring would need clang to build for ARM64 Windows.
+ureq = { version = "3", default-features = false, features = ["native-tls", "json"] }
+winreg = "0.55"
+raw-window-handle = "0.6"
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Media_Audio",
+    "Win32_System_Com",
+    "Win32_System_Threading",
+    "Win32_Security",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Shell_PropertiesSystem",
+    "Win32_Devices_FunctionDiscovery",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_Variant",
+    "Win32_UI_Input_KeyboardAndMouse",
+] }
+windows-core = "0.62"
+
+[target.'cfg(not(windows))'.dependencies]
+ureq = { version = "3", default-features = false, features = ["rustls", "json"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# winit needs a windowing backend on Linux. eframe's own x11/wayland features also
+# name egui_glow 0.36, which is not published, so enable them on egui-winit.
+egui-winit = { version = "0.36", default-features = false, features = ["x11", "wayland"] }
+gtk = "0.18"
+
+[build-dependencies]
+winresource = "0.1"
+
+[dev-dependencies]
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# DSP must stay fast even in debug builds or audio glitches during development.
+[profile.dev.package."*"]
+opt-level = 2
+
+# Release speed but with the dev single-instance name, for measuring next to an installed copy.
+[profile.profiling]
+inherits = "release"
+debug-assertions = true
+lto = "thin"

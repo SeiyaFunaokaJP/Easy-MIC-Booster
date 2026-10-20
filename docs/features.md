@@ -48,10 +48,9 @@ speaking** — the trained network separates speech from noise frame by frame.
 | **NS: ON / OFF** | Toggle button next to the Noise Gate section |
 
 - Adds about 10 ms of latency when enabled (one 480-sample frame at 48 kHz).
-- Implemented via the [RNNoise](https://github.com/xiph/rnnoise) library
-  (BSD-3-Clause). The `rnnoise.dll` ships inside the release ZIPs; if it ever
-  goes missing the toggle is disabled automatically and the rest of the app
-  keeps working.
+- Implemented with [nnnoiseless](https://github.com/jneem/nnnoiseless), a Rust
+  port of the [RNNoise](https://github.com/xiph/rnnoise) library
+  (BSD-3-Clause), built into the executable.
 
 {: .note }
 The noise gate is still useful in addition to AI Noise Suppression — RNNoise

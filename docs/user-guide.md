@@ -35,7 +35,7 @@ Download the latest release from the [Releases](https://github.com/SeiyaFunaokaJ
 - **Installer** (`EasyMICBooster-x64-vX.Y.Z-setup.exe`): installs for the current user without administrator rights and adds a Start menu entry. Uninstall from Windows Settings > Apps; your settings in `%APPDATA%\EasyMICBooster` are kept.
 - **Portable** (`EasyMICBooster-x64-vX.Y.Z-portable.zip`): unzip into any folder (for example `C:\Tools\EasyMICBooster`).
 
-Use the `x86` files only on 32-bit Windows.
+Use the `arm64` files on Windows on ARM, and the `x86` files only on 32-bit Windows.
 
 ## First-Time Setup
 

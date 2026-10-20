@@ -46,8 +46,7 @@ DSP チェーンは内部的に 48 kHz モノラル（RNNoise の要求フォー
 | **ノイズ抑制: 有効 / 無効** | ノイズゲートの上にあるトグルボタン |
 
 - 有効時の遅延は約 10 ms（48 kHz・480 サンプルの 1 フレーム分）。
-- [RNNoise](https://github.com/xiph/rnnoise) ライブラリ（BSD-3-Clause）を利用しています。
-  リリース ZIP には `rnnoise.dll` が同梱されており、万一 DLL が欠落した場合はトグルが自動で無効化され、その他の機能はそのまま動作します。
+- [RNNoise](https://github.com/xiph/rnnoise) ライブラリ（BSD-3-Clause）の Rust 移植である [nnnoiseless](https://github.com/jneem/nnnoiseless) を利用しており、実行ファイルに組み込まれています。
 
 {: .note }
 AI ノイズ抑制を使う場合でもノイズゲートは依然として有用です。

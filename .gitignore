@@ -1,23 +1,20 @@
-#Output
+# Rust build output
+/target/
+
+# Release staging (build/build_release.ps1, build/build_linux.sh)
 build/*
-!build/Directory.Build.props
 !build/*.bat
 !build/*.ps1
-src/bin/*
+!build/*.sh
+!build/about.toml
+!build/about.hbs
 
-# RNNoise: source clone is build-cache. The DLLs under native/runtimes/ are
-# committed to the repo so a clean clone produces a complete release without
-# requiring contributors to set up MSVC.
-build/rnnoise-src/
-
-# Visual Studio & .NET Standard Ignores
+# Editors / OS
 .vs/
-[Oo]bj/
-[Bb]in/
-*.user
-*.suo
-*.userprefs
-*.lock.json
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
 
 # AI assistants
 .claude/

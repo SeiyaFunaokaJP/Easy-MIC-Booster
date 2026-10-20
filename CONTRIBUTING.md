@@ -14,8 +14,15 @@ There are simple templates to help, but only the first box is required — a sho
 If you want to contribute code:
 
 1.  Please refer to the **Developer Guide** for build instructions:
-    - [Developer Guide (English)](docs/en/DeveloperGuide.md)
-    - [開発者ガイド (Japanese)](docs/ja/DeveloperGuide.md)
-2.  Send a **Pull Request** with your changes.
+    - [Developer Guide (English)](docs/developer-guide.md)
+    - [開発者ガイド (Japanese)](docs/ja/developer-guide.md)
+2.  If you can, run these before sending (CI runs them as well):
+    ```bash
+    cargo fmt --all
+    cargo clippy --all-targets
+    cargo test
+    python tools/check_lang.py
+    ```
+3.  Send a **Pull Request** with your changes.
 
 Thank you!
