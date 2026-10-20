@@ -14,7 +14,7 @@ Captures microphone input via WASAPI, processes it through Noise Suppression (sp
 [Get Started](user-guide){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [GitHub](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster){: .btn .fs-5 .mb-4 .mb-md-0 }
 
-![Easy MIC Booster Top Screen](images/app_top.jpg)
+![Easy MIC Booster Top Screen](images/app_top.png)
 
 ---
 

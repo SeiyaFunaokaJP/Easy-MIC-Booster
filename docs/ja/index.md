@@ -15,7 +15,7 @@ WASAPI でマイク入力をキャプチャし、ノイズ抑制（スペクト�
 [使い方を見る](user-guide){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [GitHub](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster){: .btn .fs-5 .mb-4 .mb-md-0 }
 
-![Easy MIC Booster Top Screen](../images/app_top.jpg)
+![Easy MIC Booster Top Screen](../images/app_top.png)
 
 ---
 

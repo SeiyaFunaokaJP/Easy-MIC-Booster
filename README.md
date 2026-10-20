@@ -5,6 +5,8 @@ Captures microphone input (WASAPI on Windows, ALSA/PipeWire on Linux, CoreAudio 
 
 **[Download](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/releases/latest)** | **[Documentation](https://seiyafunaokajp.github.io/Easy-MIC-Booster/)**
 
+![Easy MIC Booster main window](docs/images/app_top.png)
+
 ## Features
 
 | Module | Description |
