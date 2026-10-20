@@ -61,7 +61,8 @@ Easy-MIC-Booster/
 │   ├── _config.yml
 │   ├── _includes/
 │   ├── images/
-│   ├── ja/                    Japanese translation
+│   ├── ja/ zh-CN/ zh-TW/      Translations, one folder per language
+│   ├── ko/ de/ fr/ es/
 │   └── *.md                   English pages
 ├── .github/workflows/         CI (ci.yml) and release builds (release.yml)
 └── build/                     Build scripts and artifacts
@@ -149,7 +150,7 @@ cargo install --locked cargo-about
 
 ## Documentation Site
 
-This site is built with [Jekyll](https://jekyllrb.com/) using the [just-the-docs](https://just-the-docs.com/) remote theme. GitHub Pages renders it directly from the `docs/` directory on the `main` branch.
+This site is built with [Jekyll](https://jekyllrb.com/) using the [just-the-docs](https://just-the-docs.com/) remote theme. GitHub Pages renders it directly from the `docs/` directory on the `master` branch.
 
 ### Local Preview
 
@@ -161,10 +162,22 @@ bundle add jekyll-remote-theme
 bundle exec jekyll serve
 ```
 
+### Languages
+
+English pages live in `docs/`; every other language has a folder named after
+its code (`ja`, `zh-CN`, `zh-TW`, `ko`, `de`, `fr`, `es`) with the same file
+names. The `languages` list in `_config.yml` drives the language menu in the
+header, the language links in the sidebar, the `hreflang` links and the
+sidebar filter that shows only the current language.
+
+Each translated folder has a home page (`index.md`, `has_children: true`)
+whose children are the translated pages. Translated headings keep the English
+anchor (`## インストール {#installation}`), so switching language keeps the
+reader on the same section.
+
 ### Adding a Page
 
-1. Create a Markdown file in `docs/` (English) and `docs/ja/` (Japanese).
-2. Add front matter:
+1. Create the English page in `docs/` with front matter:
    ```yaml
    ---
    title: Page Title
@@ -172,15 +185,15 @@ bundle exec jekyll serve
    nav_order: <number>
    ---
    ```
-3. For Japanese pages, also add `parent: 日本語`.
-
-The language switcher at the bottom of every page links between matching English / Japanese URLs automatically.
+2. Add the translation with the same file name to each language folder, with
+   `parent:` set to that language's home page title (for example
+   `parent: ホーム`).
 
 ## Contributing
 
-See [CONTRIBUTING.md](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/blob/main/CONTRIBUTING.md) for the development workflow (forks, pull requests, etc.).
+See [CONTRIBUTING.md](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/blob/master/CONTRIBUTING.md) for the development workflow (forks, pull requests, etc.).
 
 ## License
 
-Dual-licensed under the [MIT License](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/blob/main/LICENSE-MIT) or the
-[Apache License, Version 2.0](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/blob/main/LICENSE-APACHE), at your option.
+Dual-licensed under the [MIT License](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/blob/master/LICENSE-MIT) or the
+[Apache License, Version 2.0](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/blob/master/LICENSE-APACHE), at your option.

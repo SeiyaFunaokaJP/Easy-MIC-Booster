@@ -9,50 +9,51 @@ nav_order: 1
 Microphone gain amplification & high-quality audio processing for Windows.
 {: .fs-6 .fw-300 }
 
-Captures microphone input via WASAPI, processes it through Noise Suppression (spectral, RNNoise or DeepFilterNet3), Equalizer, Noise Gate, and Limiter, and routes it to a virtual audio device such as VB-CABLE.
+Captures your microphone, cleans and boosts it — noise suppression, equalizer, gain, noise gate and limiter — and routes the result to a virtual audio device such as VB-CABLE, so every app hears the processed voice.
 
 [Get Started](user-guide){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[Download](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/releases/latest){: .btn .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [GitHub](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster){: .btn .fs-5 .mb-4 .mb-md-0 }
 
-![Easy MIC Booster Top Screen](images/app_top.png)
+![Easy MIC Booster main window](images/app_top.png)
 
 ---
 
 ## Key Features
 
-- **Software Amplifier** -- eliminates microphone gain shortage at the system level
-- **Noise Suppression** -- removal of fans, keystrokes, and other background noise even while you speak; Light, Standard (RNNoise) or High quality (DeepFilterNet3)
-- **Noise Gate** -- mutes the channel between phrases for completely silent gaps
-- **Parametric Equalizer** -- visual graph editing with savable presets
-- **Limiter** -- prevents clipping from sudden loud noises
-- **Bilingual UI** -- English / Japanese
-- **Auto Save** -- device, switches, and EQ are restored on next launch
+- **Software Amplifier** -- boosts a quiet microphone beyond the Windows gain limit (up to +50 dB, or +100 dB when unlocked)
+- **Noise Suppression** -- removes fans, keystrokes and room noise even while you speak; choose Light, Standard (RNNoise) or High quality (DeepFilterNet3)
+- **Parametric Equalizer** -- shape your tone on a live spectrum graph
+- **Noise Gate** -- mutes the mic between phrases for completely silent gaps
+- **Limiter** -- keeps peaks below a ceiling so sudden loud sounds never clip
+- **Presets & Device Profiles** -- switch sounds and microphone/output pairs in one click
+- **Tray Control** -- keeps running in the notification area; boost, presets and devices are one right-click away
+- **8 Languages** -- English, 日本語, 简体中文, 繁體中文, 한국어, Deutsch, Français, Español
 
 ## How It Works
 
 ```
-Microphone Input
-       │
-       ▼
- WASAPI Capture (PCM)
-       │
-       ▼
- DSP Chain (Noise Suppression → Equalizer → Gain → Noise Gate → Limiter)
-       │
-       ▼
- Virtual Audio Device (VB-CABLE Input)
-       │
-       ▼
- Discord / Zoom / OBS / etc.
+Microphone
+    │
+    ▼
+Capture (WASAPI on Windows)
+    │
+    ▼
+Noise Suppression → Equalizer → Gain → Noise Gate → Limiter
+    │
+    ▼
+Virtual audio device (e.g. CABLE Input)
+    │
+    ▼
+Discord / Zoom / OBS / Teams / games …
 ```
 
 ## Quick Start
 
 1. Install [VB-CABLE](https://vb-audio.com/Cable/).
-2. Download the latest release (installer `...-setup.exe`, or the portable zip).
-3. Launch Easy MIC Booster.
-4. Select your microphone as **Input** and `CABLE Input (VB-Audio Virtual Cable)` as **Output**.
-5. Toggle the central switch **ON**.
-6. In Discord/Zoom/OBS, select `CABLE Output (VB-Audio Virtual Cable)` as the microphone.
+2. Download the latest release (installer `...-setup.exe`, or the portable zip) and start Easy MIC Booster.
+3. Under **Routing**, pick your microphone as **Input** and `CABLE Input (VB-Audio Virtual Cable)` as **Output**.
+4. Make sure **BOOST ON** is enabled at the top right and set the **Gain**.
+5. In Discord, Zoom, OBS, etc., select `CABLE Output (VB-Audio Virtual Cable)` as the microphone.
 
-See [User Guide](user-guide) for the full walkthrough.
+See the [User Guide](user-guide) for the full walkthrough.
