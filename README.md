@@ -92,7 +92,16 @@ Full documentation: **<https://seiyafunaokajp.github.io/Easy-MIC-Booster/>**
 - [Features](https://seiyafunaokajp.github.io/Easy-MIC-Booster/features) — audio processing reference
 - [Developer Guide](https://seiyafunaokajp.github.io/Easy-MIC-Booster/developer-guide) — build and contribute
 
-Japanese version: **<https://seiyafunaokajp.github.io/Easy-MIC-Booster/ja/>**
+Available in:
+
+* [English](https://seiyafunaokajp.github.io/Easy-MIC-Booster/)
+* [日本語](https://seiyafunaokajp.github.io/Easy-MIC-Booster/ja/)
+* [简体中文](https://seiyafunaokajp.github.io/Easy-MIC-Booster/zh-CN/)
+* [繁體中文](https://seiyafunaokajp.github.io/Easy-MIC-Booster/zh-TW/)
+* [한국어](https://seiyafunaokajp.github.io/Easy-MIC-Booster/ko/)
+* [Deutsch](https://seiyafunaokajp.github.io/Easy-MIC-Booster/de/)
+* [Français](https://seiyafunaokajp.github.io/Easy-MIC-Booster/fr/)
+* [Español](https://seiyafunaokajp.github.io/Easy-MIC-Booster/es/)
 
 ## License
 
