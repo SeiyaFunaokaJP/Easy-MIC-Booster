@@ -5,7 +5,8 @@
 .DESCRIPTION
     Reads the version from version.txt (and fails if Cargo.toml disagrees),
     runs `cargo build --release --locked` for each Windows target, stages
-    EasyMICBooster.exe + LICENSE + THIRD-PARTY-NOTICES.txt + README.md into
+    EasyMICBooster.exe + LICENSE-MIT + LICENSE-APACHE + THIRD-PARTY-NOTICES.txt +
+    README.md into
     build\bin\<arch>\, zips it into build\zip\ and, when Inno Setup 6 is
     installed, builds the installer from installer\EasyMICBooster.iss.
 
@@ -47,7 +48,7 @@ $Triples = @{
     'arm64' = 'aarch64-pc-windows-msvc'
 }
 $ExeName = 'EasyMICBooster.exe'
-$ShipFiles = @('LICENSE', 'THIRD-PARTY-NOTICES.txt', 'README.md')
+$ShipFiles = @('LICENSE-MIT', 'LICENSE-APACHE', 'THIRD-PARTY-NOTICES.txt', 'README.md')
 
 function Write-Step([string] $Message) {
     Write-Host ''
@@ -144,7 +145,20 @@ foreach ($A in $Arch) {
 
     if ($Iscc) {
         Write-Step "Building $A installer"
-        & $Iscc /Q "/DAppVersion=$Version" "/DArch=$A" "/DPkgDir=$Stage" "/DOutputDir=$ZipDir" (Join-Path $Root 'installer\EasyMICBooster.iss')
+        # The license page shows one file: both licenses, the choice stated first.
+        $LicensePage = Join-Path $BuildDir 'obj\LICENSE-installer.txt'
+        New-Item -ItemType Directory -Force -Path (Split-Path $LicensePage) | Out-Null
+        $Rule = '=' * 78
+        $Page = @(
+            'Easy MIC Booster is dual-licensed under the MIT License or the Apache',
+            'License, Version 2.0, at your option. Both texts follow.',
+            '', $Rule, 'MIT License', $Rule, '',
+            (Get-Content -Raw (Join-Path $Root 'LICENSE-MIT')),
+            '', $Rule, 'Apache License, Version 2.0', $Rule, '',
+            (Get-Content -Raw (Join-Path $Root 'LICENSE-APACHE'))
+        ) -join "`r`n"
+        [IO.File]::WriteAllText($LicensePage, $Page)
+        & $Iscc /Q "/DAppVersion=$Version" "/DArch=$A" "/DPkgDir=$Stage" "/DOutputDir=$ZipDir" "/DLicensePage=$LicensePage" (Join-Path $Root 'installer\EasyMICBooster.iss')
         if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed for $A (exit $LASTEXITCODE)" }
         $Outputs += Join-Path $ZipDir "EasyMICBooster-$A-v$Version-setup.exe"
     }

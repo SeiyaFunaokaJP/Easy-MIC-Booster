@@ -77,10 +77,20 @@ Easy-MIC-Booster/
 
 ## ノイズ抑制
 
-AI ノイズ抑制には [RNNoise](https://github.com/xiph/rnnoise)（BSD-3-Clause）の
-pure Rust 移植である [nnnoiseless](https://github.com/jneem/nnnoiseless)
-（学習済みモデルを同梱）を使用しています。実行ファイルに組み込まれるため、
-ネイティブ DLL や C コンパイラの準備は不要です。
+ノイズ抑制には 3 つの方式があります（`src/dsp/denoise.rs` が方式を選び、元の音と混合します）。
+
+- **軽量** — `src/dsp/spectral.rs`。`realfft` による 50 % オーバーラップ STFT 上のウィーナーフィルター。モデルなし。
+- **標準** — [RNNoise](https://github.com/xiph/rnnoise)（BSD-3-Clause）の pure Rust 移植
+  [nnnoiseless](https://github.com/jneem/nnnoiseless)（学習済みモデルを同梱）。
+- **高精度** — [DeepFilterNet3](https://github.com/Rikorose/DeepFilterNet) の `libDF`
+  クレート（`deep_filter`。git のリリースタグに固定）を pure Rust の推論エンジン
+  [tract](https://github.com/sonos/tract) 上で実行し、モデルを埋め込んでいます（実行ファイルが約 25 MB 増加）。
+  モデルが `Send` でないため専用スレッドで動かしています（`src/dsp/deepfilter.rs`）。
+  tract は ARM64 で GNU 形式のアセンブリをビルドし MSVC では扱えないため、ARM64 版 Windows
+  ではこの依存を外しています（対応する `deepfilter` cfg は `build.rs` が設定します）。
+
+すべて実行ファイルに組み込まれるため、実行時に DLL やモデルファイルは不要です。
+キャプチャスレッド上での各方式の CPU 負荷は `cargo test --release -- --ignored --nocapture bench_chain` で確認できます。
 
 ## ビルド方法
 
@@ -105,7 +115,7 @@ rustup target add x86_64-pc-windows-msvc i686-pc-windows-msvc aarch64-pc-windows
 
 スクリプトは `version.txt` を読み込み（`Cargo.toml` のバージョンと異なる場合は停止）、
 各ターゲットを `cargo build --release --locked` でビルドして、`EasyMICBooster.exe` と
-`LICENSE`・`THIRD-PARTY-NOTICES.txt`・`README.md` を `build/bin/<arch>` にまとめ、
+`LICENSE-MIT`・`LICENSE-APACHE`・`THIRD-PARTY-NOTICES.txt`・`README.md` を `build/bin/<arch>` にまとめ、
 ポータブル zip（Inno Setup があればインストーラーも）を `build/zip` に出力します。
 未インストールのターゲットはスキップされます。
 
@@ -168,4 +178,4 @@ bundle exec jekyll serve
 
 ## ライセンス
 
-[MIT License](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/blob/main/LICENSE)
+[MIT License](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/blob/main/LICENSE-MIT) と [Apache License 2.0](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/blob/main/LICENSE-APACHE) のデュアルライセンスです（いずれかを選択できます）。

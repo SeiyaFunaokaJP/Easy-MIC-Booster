@@ -1,7 +1,7 @@
 # Easy MIC Booster
 
 System-level microphone gain and high-quality audio processing for Windows (Linux and macOS: experimental).
-Captures microphone input (WASAPI on Windows, ALSA/PipeWire on Linux, CoreAudio on macOS), applies a DSP chain — AI Noise Suppression, Equalizer, Noise Gate, Limiter — and routes the result to a virtual audio device such as VB-CABLE.
+Captures microphone input (WASAPI on Windows, ALSA/PipeWire on Linux, CoreAudio on macOS), applies a DSP chain — Noise Suppression, Equalizer, Noise Gate, Limiter — and routes the result to a virtual audio device such as VB-CABLE.
 
 **[Download](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/releases/latest)** | **[Documentation](https://seiyafunaokajp.github.io/Easy-MIC-Booster/)**
 
@@ -10,7 +10,7 @@ Captures microphone input (WASAPI on Windows, ALSA/PipeWire on Linux, CoreAudio 
 | Module | Description |
 |--------|-------------|
 | Software Amplifier | Boosts microphone level beyond the OS gain limit |
-| AI Noise Suppression | RNNoise-based removal of fans, keystrokes, and other background noise even while you speak (built in) |
+| Noise Suppression | Removes fans, keystrokes, and other background noise even while you speak; choose Light (spectral), Standard (RNNoise) or High quality (DeepFilterNet3), all built in |
 | Noise Gate | Suppresses ambient noise, keyboard sounds, and breath |
 | Equalizer | Multi-band EQ for tailoring vocal tone |
 | Limiter | Prevents clipping at high gain settings |
@@ -94,7 +94,14 @@ Japanese version: **<https://seiyafunaokajp.github.io/Easy-MIC-Booster/ja/>**
 
 ## License
 
-This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for the full text.
+This project is licensed under either of
+
+- **MIT License** ([LICENSE-MIT](LICENSE-MIT))
+- **Apache License, Version 2.0** ([LICENSE-APACHE](LICENSE-APACHE))
+
+at your option. Unless you explicitly state otherwise, any contribution you
+submit for inclusion in this project shall be dual-licensed as above, without
+any additional terms or conditions.
 
 Released binaries are self-contained and statically link third-party Rust
 crates. Their copyright notices and license terms are reproduced in
@@ -105,6 +112,7 @@ inside the release packages.
 
 - [egui / eframe](https://github.com/emilk/egui) — immediate-mode GUI
 - [cpal](https://github.com/RustAudio/cpal) — cross-platform audio capture and playback
-- [nnnoiseless](https://github.com/jneem/nnnoiseless) — Rust port of [RNNoise](https://github.com/xiph/rnnoise), used for AI Noise Suppression
+- [nnnoiseless](https://github.com/jneem/nnnoiseless) — Rust port of [RNNoise](https://github.com/xiph/rnnoise), used for Standard noise suppression
+- [DeepFilterNet](https://github.com/Rikorose/DeepFilterNet) on [tract](https://github.com/sonos/tract) — used for High quality noise suppression
 - [tray-icon](https://github.com/tauri-apps/tray-icon) — system tray icon
 - [VB-CABLE](https://vb-audio.com/Cable/) — Virtual audio device for inter-application audio routing

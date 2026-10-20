@@ -20,6 +20,27 @@ pub fn card<R>(ui: &mut Ui, add: impl FnOnce(&mut Ui) -> R) -> R {
         .inner
 }
 
+/// A card padded to at least `min_height` of content; also returns the height
+/// its content needed, so cards side by side can be given the same height.
+pub fn card_min_height<R>(
+    ui: &mut Ui,
+    min_height: f32,
+    add: impl FnOnce(&mut Ui) -> R,
+) -> (R, f32) {
+    card(ui, |ui| {
+        let top = ui.min_rect().top();
+        let r = add(ui);
+        let needed = ui.min_rect().bottom() - top;
+        // Pad only the difference. (`set_min_height` would reserve the whole
+        // height again below the content, from the cursor.)
+        let pad = min_height - needed - ui.spacing().item_spacing.y;
+        if pad > 0.0 {
+            ui.add_space(pad);
+        }
+        (r, needed)
+    })
+}
+
 pub fn section_title(ui: &mut Ui, icon: &str, text: &str) {
     ui.horizontal(|ui| {
         ui.label(egui::RichText::new(icon).font(font(16.0)).color(ACCENT_HI));
@@ -78,8 +99,14 @@ pub fn lerp_color(a: Color32, b: Color32, t: f32) -> Color32 {
     )
 }
 
-/// Segmented control; returns the newly picked index.
-pub fn segmented(ui: &mut Ui, labels: &[String], selected: usize) -> Option<usize> {
+/// Segmented control; returns the newly picked index. `tips` (if any) are
+/// hover texts, one per label.
+pub fn segmented(
+    ui: &mut Ui,
+    labels: &[String],
+    tips: &[String],
+    selected: usize,
+) -> Option<usize> {
     let mut picked = None;
     let font_id = font(12.5);
     let widths: Vec<f32> = labels
@@ -100,7 +127,10 @@ pub fn segmented(ui: &mut Ui, labels: &[String], selected: usize) -> Option<usiz
     let mut x = rect.left() + 3.0;
     for (i, (label, w)) in labels.iter().zip(widths).enumerate() {
         let r = Rect::from_min_size(pos2(x, rect.top() + 3.0), vec2(w, rect.height() - 6.0));
-        let resp = ui.interact(r, ui.id().with(("seg", i, label)), Sense::click());
+        let mut resp = ui.interact(r, ui.id().with(("seg", i, label)), Sense::click());
+        if let Some(tip) = tips.get(i) {
+            resp = resp.on_hover_text(tip);
+        }
         if i == selected {
             ui.painter().rect_filled(r, 7.0, ACCENT);
         } else if resp.hovered() {

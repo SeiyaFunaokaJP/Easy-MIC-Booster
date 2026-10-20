@@ -76,10 +76,25 @@ Easy-MIC-Booster/
 
 ## Noise Suppression
 
-AI Noise Suppression uses [nnnoiseless](https://github.com/jneem/nnnoiseless),
-a pure-Rust port of [RNNoise](https://github.com/xiph/rnnoise) (BSD-3-Clause)
-that includes the model weights. It is compiled into the executable, so no
-native DLL or C toolchain setup is needed.
+Noise suppression has three methods (`src/dsp/denoise.rs` picks one and mixes
+it with the dry signal):
+
+- **Light** — `src/dsp/spectral.rs`, a Wiener filter on a 50 %-overlap STFT
+  using `realfft`. No model.
+- **Standard** — [nnnoiseless](https://github.com/jneem/nnnoiseless), a
+  pure-Rust port of [RNNoise](https://github.com/xiph/rnnoise) (BSD-3-Clause)
+  that includes the model weights.
+- **High quality** — [DeepFilterNet3](https://github.com/Rikorose/DeepFilterNet)
+  through its `libDF` crate (`deep_filter`, pinned to a release tag from git)
+  on the pure-Rust [tract](https://github.com/sonos/tract) runtime, with the
+  model embedded (~25 MB added to the executable). The model is not `Send`, so
+  it runs on its own thread (`src/dsp/deepfilter.rs`). tract assembles
+  GNU-syntax kernels on ARM64, which MSVC cannot, so the dependency is left out
+  of ARM64 Windows builds; `build.rs` sets the matching `deepfilter` cfg.
+
+Everything is compiled into the executable, so no native DLL or model file is
+needed at run time. `cargo test --release -- --ignored --nocapture bench_chain`
+prints the CPU cost of each method on the capture thread.
 
 ## Building
 
@@ -104,7 +119,7 @@ rustup target add x86_64-pc-windows-msvc i686-pc-windows-msvc aarch64-pc-windows
 
 The script reads `version.txt` (and stops if `Cargo.toml` has a different
 version), builds each target with `cargo build --release --locked`, stages
-`EasyMICBooster.exe` with `LICENSE`, `THIRD-PARTY-NOTICES.txt` and `README.md`
+`EasyMICBooster.exe` with `LICENSE-MIT`, `LICENSE-APACHE`, `THIRD-PARTY-NOTICES.txt` and `README.md`
 into `build/bin/<arch>`, and writes the portable zips (and, with Inno Setup,
 the installers) to `build/zip`. Targets that are not installed are skipped.
 
@@ -167,4 +182,5 @@ See [CONTRIBUTING.md](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/blob/ma
 
 ## License
 
-[MIT License](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/blob/main/LICENSE).
+Dual-licensed under the [MIT License](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/blob/main/LICENSE-MIT) or the
+[Apache License, Version 2.0](https://github.com/SeiyaFunaokaJP/Easy-MIC-Booster/blob/main/LICENSE-APACHE), at your option.
