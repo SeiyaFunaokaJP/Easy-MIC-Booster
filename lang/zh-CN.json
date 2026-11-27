@@ -101,6 +101,7 @@
     "Settings_CloseToTray": "关闭窗口后继续在托盘中运行",
     "Settings_Language": "语言",
     "Settings_Title": "设置",
+    "Settings_TrayQuickControls": "单击托盘图标时打开快速控制面板",
     "Status_BothMissing": "设备未连接",
     "Status_Bypassed": "已旁路",
     "Status_ChooseOutput": "请选择输出设备",

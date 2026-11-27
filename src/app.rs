@@ -384,6 +384,8 @@ impl eframe::App for App {
 
         #[cfg(not(target_os = "linux"))]
         crate::tray::refresh();
+        #[cfg(windows)]
+        crate::flyout::keep(ctx, &self.ctrl);
 
         if visible {
             if running && (self.meters.active() || self.graph.spectrum_active()) {
@@ -724,15 +726,13 @@ impl App {
     }
 }
 
-fn device_combo(
-    ui: &mut Ui,
-    salt: &str,
+/// The label of the "default device" entry, and of the device `current` names.
+pub(crate) fn device_labels(
     list: &[DeviceInfo],
     default: Option<&str>,
     current: &str,
     saved_name: &str,
-    missing: bool,
-) -> Option<String> {
+) -> (String, String) {
     let default_label = match default.and_then(|id| list.iter().find(|d| d.id == id)) {
         Some(d) => trf("Device_Default", &[&d.name]),
         None => tr("Device_Default_None"),
@@ -753,6 +753,19 @@ fn device_combo(
             }],
         )
     };
+    (default_label, selected)
+}
+
+fn device_combo(
+    ui: &mut Ui,
+    salt: &str,
+    list: &[DeviceInfo],
+    default: Option<&str>,
+    current: &str,
+    saved_name: &str,
+    missing: bool,
+) -> Option<String> {
+    let (default_label, selected) = device_labels(list, default, current, saved_name);
     let mut picked = None;
     let r = egui::ComboBox::from_id_salt(salt)
         .width(ui.available_width())
@@ -1688,6 +1701,16 @@ impl App {
                     lock(&self.ctrl).edit_settings(|x| x.close_to_tray = v);
                 }
                 ui.end_row();
+
+                #[cfg(windows)]
+                {
+                    ui.label(dim(tr("Settings_TrayQuickControls")));
+                    let mut v = s.tray_quick_controls;
+                    if toggle(ui, &mut v).changed() {
+                        lock(&self.ctrl).edit_settings(|x| x.tray_quick_controls = v);
+                    }
+                    ui.end_row();
+                }
 
                 ui.label(dim(tr("Check_UnlockLimit")));
                 let mut v = s.unlock_limit;

@@ -135,6 +135,17 @@ Un perfil de dispositivos recuerda una pareja de entrada/salida. Use la lista **
 
 Los perfiles también se pueden cambiar desde el menú de la bandeja.
 
+## Controles rápidos {#quick-controls}
+
+En Windows, haga clic en el icono de la bandeja para abrir un pequeño panel sobre el área de notificación:
+
+- Activar/desactivar **Boost** y ver el estado actual
+- **Ganancia** -- un control deslizante, pasos de 1 dB y valores de 0 a +30 dB con un solo clic
+- **Entrada** y **Salida** -- haga clic en una para elegir otro dispositivo
+- **Abrir Easy MIC Booster**
+
+El panel se cierra al hacer clic fuera de él o al pulsar Esc. Haga doble clic en el icono para abrir la ventana. Para abrir la ventana con un solo clic, desactive **Abrir los controles rápidos desde la bandeja** en Ajustes.
+
 ## Menú de la bandeja {#tray-menu}
 
 Haga clic derecho en el icono de la bandeja para acceder a:

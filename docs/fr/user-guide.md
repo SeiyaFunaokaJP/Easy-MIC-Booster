@@ -74,7 +74,7 @@ Ne définissez **pas** `CABLE Output` comme **périphérique de lecture par déf
 ## Utilisation au quotidien {#daily-use}
 
 - **Contournement** -- désactivez **BOOST ON** pour laisser passer le microphone sans gain ni EQ (la suppression de bruit et le gate restent tels quels).
-- **Zone de notification** -- fermer la fenêtre laisse l'application tourner dans la zone de notification. Faites un clic droit sur l'icône pour activer ou désactiver le boost ou la suppression de bruit, modifier le gain, changer de préréglage, de profil de périphériques ou de périphérique, ou quitter. Cliquez dessus pour ouvrir la fenêtre.
+- **Zone de notification** -- fermer la fenêtre laisse l'application tourner dans la zone de notification. Sous Windows, cliquez sur l'icône pour ouvrir les commandes rapides : boost, gain et périphériques d'entrée et de sortie. Double-cliquez sur l'icône pour ouvrir la fenêtre. Un clic droit affiche le menu complet, qui propose aussi la suppression de bruit, les préréglages, les profils de périphériques et **Quitter**. Sous Linux et macOS, un clic sur l'icône ouvre la fenêtre.
 - **Préréglages** -- enregistrez votre son avec **Enregistrer comme nouveau** et passez d'un préréglage à l'autre dans la carte **Préréglages** ou depuis la zone de notification. Voir [Fonctionnalités](features#presets).
 - **Profils de périphériques** -- enregistrez un couple micro/sortie et passez de l'un à l'autre (par exemple un casque au bureau et un micro USB pour le streaming). Voir [Fonctionnalités](features#device-profiles).
 - **Périphériques débranchés** -- si le microphone ou la sortie disparaît, l'état passe au rouge ; le routage reprend automatiquement dès que le périphérique est reconnecté.
@@ -88,6 +88,7 @@ Ouvrez les **Paramètres** avec l'icône d'engrenage en haut à droite.
 | **Langue** | Langue de l'interface (suit Windows au premier lancement) |
 | **Lancer à l'ouverture de session** | Démarre automatiquement à l'ouverture de votre session Windows (dans la zone de notification) |
 | **Rester dans la zone de notification à la fermeture** | Désactivé : fermer la fenêtre quitte l'application |
+| **Ouvrir les commandes rapides depuis la zone de notification** | Windows uniquement. Désactivé : un clic sur l'icône ouvre la fenêtre |
 | **Autoriser un gain supérieur à +50 dB** | Relève la limite de gain à +100 dB |
 | **Plafond de sortie** | Niveau de crête sous lequel le limiteur maintient la sortie (par défaut −1.0 dBFS) |
 | **Rechercher des mises à jour** | Recherche une version plus récente sur GitHub au démarrage |

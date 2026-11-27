@@ -101,6 +101,7 @@
     "Settings_CloseToTray": "창을 닫아도 트레이에서 계속 실행",
     "Settings_Language": "언어",
     "Settings_Title": "설정",
+    "Settings_TrayQuickControls": "트레이 아이콘 클릭 시 빠른 설정 패널 열기",
     "Status_BothMissing": "장치 연결 안 됨",
     "Status_Bypassed": "바이패스 중",
     "Status_ChooseOutput": "출력 장치를 선택하세요",

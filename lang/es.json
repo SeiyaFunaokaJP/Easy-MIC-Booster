@@ -101,6 +101,7 @@
     "Settings_CloseToTray": "Seguir en la bandeja del sistema al cerrar",
     "Settings_Language": "Idioma",
     "Settings_Title": "Ajustes",
+    "Settings_TrayQuickControls": "Abrir los controles rápidos desde la bandeja",
     "Status_BothMissing": "Dispositivos no conectados",
     "Status_Bypassed": "Omitido",
     "Status_ChooseOutput": "Elija un dispositivo de salida",

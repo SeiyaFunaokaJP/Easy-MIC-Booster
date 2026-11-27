@@ -101,6 +101,7 @@
     "Settings_CloseToTray": "閉じてもトレイで動作を続ける",
     "Settings_Language": "言語",
     "Settings_Title": "設定",
+    "Settings_TrayQuickControls": "トレイアイコンのクリックでクイック操作パネルを開く",
     "Status_BothMissing": "デバイスが未接続",
     "Status_Bypassed": "バイパス中",
     "Status_ChooseOutput": "出力デバイスを選択してください",

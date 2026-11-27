@@ -1,7 +1,8 @@
 //! Tray icon with quick controls. The menu is rebuilt from the controller state
 //! whenever it changes, on the thread that owns the tray (the UI thread on
 //! Windows/macOS, a GTK thread on Linux). Menu actions go straight to the
-//! controller, so they work while the window is hidden.
+//! controller, so they work while the window is hidden. On Windows a left
+//! click opens the quick controls instead (flyout.rs).
 
 use std::cell::RefCell;
 use std::sync::OnceLock;
@@ -117,6 +118,35 @@ pub fn create(hooks: TrayHooks) {
         refresh();
     }));
     TrayIconEvent::set_event_handler(Some(|e: TrayIconEvent| match e {
+        // Windows: a click opens the quick controls, as the system's tray
+        // icons do (unless turned off in Settings); a double click opens the window.
+        #[cfg(windows)]
+        TrayIconEvent::Click {
+            button: MouseButton::Left,
+            button_state: MouseButtonState::Up,
+            rect,
+            ..
+        } => {
+            let Some(h) = HOOKS.get() else { return };
+            if !lock(&h.controller).settings.tray_quick_controls {
+                (h.show_window)();
+                return;
+            }
+            let x = rect.position.x + rect.size.width as f64 / 2.0;
+            let y = rect.position.y + rect.size.height as f64 / 2.0;
+            crate::flyout::toggle(x.round() as i32, y.round() as i32);
+        }
+        #[cfg(windows)]
+        TrayIconEvent::DoubleClick {
+            button: MouseButton::Left,
+            ..
+        } => {
+            crate::flyout::hide();
+            if let Some(h) = HOOKS.get() {
+                (h.show_window)();
+            }
+        }
+        #[cfg(not(windows))]
         TrayIconEvent::Click {
             button: MouseButton::Left,
             button_state: MouseButtonState::Up,

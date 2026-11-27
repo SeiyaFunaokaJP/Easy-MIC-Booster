@@ -230,6 +230,8 @@ pub struct Settings {
     pub language: String,
     pub check_updates: bool,
     pub close_to_tray: bool,
+    /// Windows: a click on the tray icon opens the quick controls, not the window.
+    pub tray_quick_controls: bool,
 }
 
 impl Default for Settings {
@@ -248,6 +250,7 @@ impl Default for Settings {
             language: crate::i18n::detect_system_language(),
             check_updates: true,
             close_to_tray: true,
+            tray_quick_controls: true,
         }
     }
 }

@@ -74,7 +74,7 @@ Legen Sie `CABLE Output` in den Windows-Soundeinstellungen **nicht** als **Stand
 ## Täglicher Gebrauch {#daily-use}
 
 - **Umgehen** -- schalten Sie **BOOST ON** aus, um das Mikrofon ohne Verstärkung oder EQ durchzuleiten (Rauschunterdrückung und Gate bleiben wie eingestellt).
-- **Infobereich** -- beim Schließen des Fensters läuft die App im Infobereich weiter. Klicken Sie mit der rechten Maustaste auf das Symbol, um Boost oder Rauschunterdrückung umzuschalten, die Verstärkung zu ändern, Presets, Geräteprofile und Geräte zu wechseln oder die App zu beenden. Ein Klick darauf öffnet das Fenster.
+- **Infobereich** -- beim Schließen des Fensters läuft die App im Infobereich weiter. Unter Windows öffnet ein Klick auf das Symbol die Schnellsteuerung für Boost, Verstärkung sowie Eingangs- und Ausgangsgerät. Ein Doppelklick öffnet das Fenster. Ein Rechtsklick öffnet das vollständige Menü, das außerdem Rauschunterdrückung, Presets, Geräteprofile und **Beenden** enthält. Unter Linux und macOS öffnet ein Klick auf das Symbol das Fenster.
 - **Presets** -- speichern Sie Ihren Klang mit **Als neu speichern** und wechseln Sie zwischen Presets in der Karte **Presets** oder über den Infobereich. Siehe [Funktionen](features#presets).
 - **Geräteprofile** -- speichern Sie ein Mikrofon-/Ausgangspaar und wechseln Sie zwischen solchen Paaren (zum Beispiel ein Headset am Schreibtisch und ein USB-Mikrofon zum Streamen). Siehe [Funktionen](features#device-profiles).
 - **Getrennte Geräte** -- verschwindet das Mikrofon oder der Ausgang, wird der Status rot; das Routing wird automatisch fortgesetzt, sobald das Gerät wieder verbunden ist.
@@ -88,6 +88,7 @@ Legen Sie `CABLE Output` in den Windows-Soundeinstellungen **nicht** als **Stand
 | **Sprache** | Sprache der Oberfläche (folgt beim ersten Start Windows) |
 | **Bei der Anmeldung starten** | Startet automatisch bei der Anmeldung an Windows (im Infobereich) |
 | **Beim Schließen im Infobereich weiterlaufen** | Aus: Schließen des Fensters beendet die App |
+| **Schnellsteuerung per Klick im Infobereich öffnen** | Nur Windows. Aus: Ein Klick auf das Symbol öffnet das Fenster |
 | **Verstärkung über +50 dB zulassen** | Hebt die Verstärkungsgrenze auf +100 dB an |
 | **Ausgangsobergrenze** | Spitzenpegel, unter dem der Limiter den Ausgang hält (Standard −1.0 dBFS) |
 | **Nach Updates suchen** | Prüft beim Start auf GitHub, ob eine neuere Version vorliegt |

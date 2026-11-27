@@ -134,6 +134,17 @@ A device profile remembers an input/output pair. Use the **Device Profile** list
 
 Profiles can also be switched from the tray menu.
 
+## Quick Controls {#quick-controls}
+
+On Windows, click the tray icon to open a small panel above the notification area:
+
+- **Boost** on/off and the current status
+- **Gain** -- a slider, 1 dB steps and one-click values from 0 to +30 dB
+- **Input** and **Output** -- click one to choose another device
+- **Open Easy MIC Booster**
+
+The panel closes when you click elsewhere or press Esc. Double-click the icon to open the window. To open the window with a single click instead, turn off **Open quick controls from the tray icon** in Settings.
+
 ## Tray Menu
 
 Right-click the tray icon for:

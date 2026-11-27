@@ -101,6 +101,7 @@
     "Settings_CloseToTray": "關閉視窗後繼續在系統匣中執行",
     "Settings_Language": "語言",
     "Settings_Title": "設定",
+    "Settings_TrayQuickControls": "按一下系統匣圖示時開啟快速控制面板",
     "Status_BothMissing": "裝置未連線",
     "Status_Bypassed": "已旁路",
     "Status_ChooseOutput": "請選擇輸出裝置",

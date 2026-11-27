@@ -101,6 +101,7 @@
     "Settings_CloseToTray": "Keep running in the tray when closed",
     "Settings_Language": "Language",
     "Settings_Title": "Settings",
+    "Settings_TrayQuickControls": "Open quick controls from the tray icon",
     "Status_BothMissing": "Devices not connected",
     "Status_Bypassed": "Bypassed",
     "Status_ChooseOutput": "Choose an output device",

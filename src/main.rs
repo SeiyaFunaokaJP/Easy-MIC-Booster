@@ -5,6 +5,8 @@ mod audio;
 mod config;
 mod controller;
 mod dsp;
+#[cfg(windows)]
+mod flyout;
 mod i18n;
 mod platform;
 mod tray;
