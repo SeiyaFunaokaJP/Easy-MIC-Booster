@@ -135,6 +135,17 @@ Un profil de périphériques mémorise un couple entrée/sortie. Utilisez la lis
 
 Les profils peuvent aussi être changés depuis le menu de la zone de notification.
 
+## Commandes rapides {#quick-controls}
+
+Sous Windows, cliquez sur l'icône de la zone de notification pour ouvrir un petit panneau juste au-dessus :
+
+- l'activation de **Boost** et l'état actuel
+- **Gain** -- un curseur, des pas de 1 dB et des valeurs de 0 à +30 dB en un clic
+- **Entrée** et **Sortie** -- cliquez sur l'une d'elles pour choisir un autre périphérique
+- **Ouvrir Easy MIC Booster**
+
+Le panneau se ferme quand vous cliquez ailleurs ou appuyez sur Échap. Double-cliquez sur l'icône pour ouvrir la fenêtre. Pour ouvrir la fenêtre d'un simple clic, désactivez **Ouvrir les commandes rapides depuis la zone de notification** dans les paramètres.
+
 ## Menu de la zone de notification {#tray-menu}
 
 Un clic droit sur l'icône de la zone de notification donne accès à :

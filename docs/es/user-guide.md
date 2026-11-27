@@ -74,7 +74,7 @@ En Discord, Zoom, OBS, Teams, etc., abra los ajustes de audio y seleccione `CABL
 ## Uso diario {#daily-use}
 
 - **Omitir** -- desactive **BOOST ON** para dejar pasar el micrófono sin ganancia ni EQ (la supresión de ruido y la puerta se mantienen como estén).
-- **Bandeja** -- al cerrar la ventana, la aplicación sigue funcionando en el área de notificación. Haga clic derecho en el icono de la bandeja para activar o desactivar el boost o la supresión de ruido, cambiar la ganancia, cambiar de preajuste, de perfil de dispositivos y de dispositivos, o salir. Haga clic en él para abrir la ventana.
+- **Bandeja** -- al cerrar la ventana, la aplicación sigue funcionando en el área de notificación. En Windows, haga clic en el icono de la bandeja para abrir los controles rápidos: boost, ganancia y dispositivos de entrada y salida. Haga doble clic para abrir la ventana. Haga clic derecho para ver el menú completo, que además incluye la supresión de ruido, los preajustes, los perfiles de dispositivos y **Salir**. En Linux y macOS, al hacer clic en el icono se abre la ventana.
 - **Preajustes** -- guarde su sonido con **Guardar como nuevo** y cambie entre preajustes en la tarjeta **Preajustes** o desde la bandeja. Consulte [Funciones](features#presets).
 - **Perfiles de dispositivos** -- guarde una pareja micrófono/salida y cambie entre ellas (por ejemplo, unos auriculares con micrófono en el escritorio y un micrófono USB para hacer streaming). Consulte [Funciones](features#device-profiles).
 - **Dispositivos desconectados** -- si el micrófono o la salida desaparecen, el estado se vuelve rojo; el enrutamiento se reanuda automáticamente cuando se vuelven a conectar.
@@ -88,6 +88,7 @@ Abra **Ajustes** con el icono del engranaje en la esquina superior derecha.
 | **Idioma** | Idioma de la interfaz (sigue a Windows en el primer inicio) |
 | **Iniciar al iniciar sesión** | Se inicia automáticamente al iniciar sesión en Windows (arranca en la bandeja) |
 | **Seguir en la bandeja del sistema al cerrar** | Desactivado: al cerrar la ventana se sale de la aplicación |
+| **Abrir los controles rápidos desde la bandeja** | Solo Windows. Desactivado: al hacer clic en el icono se abre la ventana |
 | **Permitir ganancia superior a +50 dB** | Eleva el límite de ganancia a +100 dB |
 | **Techo de salida** | Nivel de pico por debajo del cual el limitador mantiene la salida (predeterminado −1.0 dBFS) |
 | **Buscar actualizaciones** | Comprueba en GitHub si hay una versión más reciente al iniciar |

@@ -101,6 +101,7 @@
     "Settings_CloseToTray": "Rester dans la zone de notification à la fermeture",
     "Settings_Language": "Langue",
     "Settings_Title": "Paramètres",
+    "Settings_TrayQuickControls": "Ouvrir les commandes rapides depuis la zone de notification",
     "Status_BothMissing": "Périphériques non connectés",
     "Status_Bypassed": "Contourné",
     "Status_ChooseOutput": "Choisissez une sortie",

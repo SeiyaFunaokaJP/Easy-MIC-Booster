@@ -73,7 +73,7 @@ Do **not** set `CABLE Output` as the **default playback device** in the Windows 
 ## Daily Use
 
 - **Bypass** -- switch **BOOST ON** off to pass the microphone through without gain or EQ (noise suppression and the gate stay as set).
-- **Tray** -- closing the window keeps the app running in the notification area. Right-click the tray icon to toggle boost or noise suppression, change the gain, switch presets, device profiles and devices, or exit. Click it to open the window.
+- **Tray** -- closing the window keeps the app running in the notification area. On Windows, click the tray icon for quick controls: boost, gain and the input and output devices. Double-click the icon to open the window. Right-click the icon for the full menu, which also has noise suppression, presets, device profiles and **Exit**. On Linux and macOS, click the icon to open the window.
 - **Presets** -- save your sound with **Save as new** and switch between presets in the **Presets** card or from the tray. See [Features](features#presets).
 - **Device profiles** -- save a microphone/output pair and switch between them (for example a headset at the desk and a USB mic for streaming). See [Features](features#device-profiles).
 - **Unplugged devices** -- if the microphone or output disappears, the status turns red; routing resumes automatically when it is connected again.
@@ -87,6 +87,7 @@ Open **Settings** with the gear icon at the top right.
 | **Language** | UI language (follows Windows on first run) |
 | **Start when I sign in** | Launch automatically when you sign in to Windows (starts in the tray) |
 | **Keep running in the tray when closed** | Off: closing the window exits the app |
+| **Open quick controls from the tray icon** | Windows only. Off: a click on the tray icon opens the window |
 | **Allow gain above +50 dB** | Raises the gain limit to +100 dB |
 | **Output ceiling** | Peak level the limiter holds the output under (default −1.0 dBFS) |
 | **Check for updates** | Checks GitHub for a newer release at startup |

@@ -135,6 +135,17 @@ Ein Geräteprofil merkt sich ein Eingangs-/Ausgangspaar. Verwenden Sie die Liste
 
 Profile lassen sich auch über das Menü im Infobereich wechseln.
 
+## Schnellsteuerung {#quick-controls}
+
+Unter Windows öffnet ein Klick auf das Symbol im Infobereich ein kleines Bedienfeld direkt darüber:
+
+- **Boost** ein/aus und der aktuelle Status
+- **Verstärkung** -- Schieberegler, Schritte von 1 dB und feste Werte von 0 bis +30 dB per Klick
+- **Eingang** und **Ausgang** -- anklicken, um ein anderes Gerät zu wählen
+- **Easy MIC Booster öffnen**
+
+Das Bedienfeld schließt sich, wenn Sie woanders klicken oder Esc drücken. Ein Doppelklick auf das Symbol öffnet das Hauptfenster. Soll schon ein einfacher Klick das Hauptfenster öffnen, schalten Sie in den Einstellungen **Schnellsteuerung per Klick im Infobereich öffnen** aus.
+
 ## Menü im Infobereich {#tray-menu}
 
 Ein Rechtsklick auf das Symbol im Infobereich bietet:
