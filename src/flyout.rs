@@ -1,15 +1,19 @@
 //! The tray flyout (Windows): a small window above the notification area with
 //! the everyday controls: boost on/off, the gain, and the input and output
-//! devices. A left click on the tray icon opens it, like the system's own
-//! flyouts. It closes when it loses the focus, on Escape, or on another click
-//! on the icon.
+//! devices. A setting picks what opens it:
+//! - The tray icon, like the system's own flyouts. It closes when it loses
+//!   the focus, on Escape, or on another click on the icon.
+//! - Windows 11's Quick Settings (the network and volume buttons): it shows
+//!   above them without taking the focus, which would close them, and closes
+//!   with them.
 //!
 //! It is a deferred egui viewport that exists from the first frame on and
 //! stays hidden until needed. While the main window is hidden, egui still runs
 //! frames, but only every 100 ms, so showing, placing and hiding the flyout go
 //! straight through Win32 instead of viewport commands.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+use std::sync::Once;
 use std::sync::{LazyLock, Mutex, MutexGuard, OnceLock};
 use std::time::{Duration, Instant};
 
@@ -21,9 +25,10 @@ use egui_phosphor::regular as icon;
 
 use crate::app::device_labels;
 use crate::audio::{DeviceInfo, EngineStatus};
-use crate::config::{Settings, DEFAULT_DEVICE_ID};
+use crate::config::{QuickControls, Settings, DEFAULT_DEVICE_ID};
 use crate::controller::{lock, Shared};
 use crate::i18n::tr;
+use crate::platform::quick_settings::{self as qs, Panels};
 use crate::platform::{self, ScreenRect};
 use crate::tray::format_db;
 use crate::ui::theme::*;
@@ -43,6 +48,10 @@ const OPENING: Duration = Duration::from_millis(800);
 /// A click on the icon of an open flyout takes the focus first, which closes
 /// it; the click itself must not open it again.
 const REOPEN_GUARD: Duration = Duration::from_millis(300);
+/// How long Quick Settings get to build their panels before they are read.
+const SETTLE: Duration = Duration::from_millis(250);
+/// How often the panels of Quick Settings are read while they are open.
+const FOLLOW_EVERY: Duration = Duration::from_millis(150);
 const QUICK_GAINS: [f32; 6] = [0.0, 6.0, 12.0, 18.0, 24.0, 30.0];
 const DEVICE_LIST_MAX_H: f32 = 220.0;
 
@@ -61,6 +70,15 @@ struct Anchor {
     left: bool,
 }
 
+/// Where Quick Settings are, read by the thread that follows them.
+#[derive(Clone, Copy)]
+struct Quick {
+    panels: Panels,
+    dpi: u32,
+    /// Top of the work area of their screen.
+    screen_top: i32,
+}
+
 #[derive(Default)]
 struct State {
     hwnd: isize,
@@ -76,11 +94,19 @@ struct State {
     height: f32,
     /// egui's zoom factor last frame.
     zoom: f32,
+    /// Quick Settings are open here (set while they are followed).
+    quick: Option<Quick>,
+    /// Shown above Quick Settings, rather than from the tray icon.
+    with_quick: bool,
 }
 
 static STATE: LazyLock<Mutex<State>> = LazyLock::new(Default::default);
 static CTX: OnceLock<egui::Context> = OnceLock::new();
-static ENABLED: AtomicBool = AtomicBool::new(true);
+/// The setting: what opens the flyout (`QuickControls` as u8). Kept here so
+/// the tray and the hook need no lock to know.
+static SOURCE: AtomicU8 = AtomicU8::new(0);
+/// A thread follows Quick Settings.
+static FOLLOWING: AtomicBool = AtomicBool::new(false);
 
 fn state() -> MutexGuard<'static, State> {
     STATE.lock().unwrap_or_else(|e| e.into_inner())
@@ -90,11 +116,30 @@ fn viewport_id() -> ViewportId {
     ViewportId::from_hash_of("tray-flyout")
 }
 
-/// Runs in every frame of the main window: keeps the flyout's window in
-/// existence. `enabled` is the setting that a click on the tray icon opens it.
-pub fn keep(ctx: &egui::Context, ctrl: &Shared, enabled: bool) {
+fn source() -> QuickControls {
+    match SOURCE.load(Ordering::Relaxed) {
+        1 => QuickControls::QuickSettings,
+        2 => QuickControls::Nowhere,
+        _ => QuickControls::TrayIcon,
+    }
+}
+
+/// Runs in every frame of the main window (the UI thread): keeps the flyout's
+/// window in existence, and watches for Quick Settings opening.
+pub fn keep(ctx: &egui::Context, ctrl: &Shared, from: QuickControls) {
     let _ = CTX.set(ctx.clone());
-    ENABLED.store(enabled, Ordering::Relaxed);
+    SOURCE.store(
+        match from {
+            QuickControls::TrayIcon => 0,
+            QuickControls::QuickSettings => 1,
+            QuickControls::Nowhere => 2,
+        },
+        Ordering::Relaxed,
+    );
+    static HOOK: Once = Once::new();
+    if qs::supported() {
+        HOOK.call_once(|| qs::watch_opened(on_quick_settings_opened));
+    }
     let ctrl = ctrl.clone();
     ctx.show_viewport_deferred(
         viewport_id(),
@@ -123,7 +168,10 @@ pub fn keep(ctx: &egui::Context, ctrl: &Shared, enabled: bool) {
 enum Win {
     Place(isize, ScreenRect),
     Show(isize),
+    /// Shown without the focus (above Quick Settings).
+    ShowInactive(isize),
     Hide(isize),
+    NoActivate(isize, bool),
 }
 
 fn apply(ops: Vec<Win>) {
@@ -135,7 +183,9 @@ fn apply(ops: Vec<Win>) {
                 }
             }
             Win::Show(hwnd) => platform::show_popup(hwnd),
+            Win::ShowInactive(hwnd) => qs::show_inactive(hwnd),
             Win::Hide(hwnd) => platform::hide_popup(hwnd),
+            Win::NoActivate(hwnd, on) => qs::set_no_activate(hwnd, on),
         }
     }
 }
@@ -146,10 +196,84 @@ fn repaint() {
     }
 }
 
-/// Whether a click on the tray icon opens the flyout (a setting). Kept here so
-/// the tray needs no lock to know.
-pub fn enabled() -> bool {
-    ENABLED.load(Ordering::Relaxed)
+/// Whether a click on the tray icon opens the flyout (otherwise it opens the
+/// main window).
+pub fn opens_from_tray() -> bool {
+    source() == QuickControls::TrayIcon
+}
+
+// ---- above Quick Settings ------------------------------------------------------
+
+/// Quick Settings just opened (the foreground hook, on the UI thread).
+fn on_quick_settings_opened() {
+    if source() != QuickControls::QuickSettings || FOLLOWING.swap(true, Ordering::Relaxed) {
+        return;
+    }
+    // Its own thread: COM, and reading the panels takes a while.
+    let spawned = std::thread::Builder::new()
+        .name("quick-settings".into())
+        .spawn(|| {
+            if let Err(e) = follow_quick_settings() {
+                eprintln!("quick settings: {e}");
+            }
+            state().quick = None;
+            repaint();
+            FOLLOWING.store(false, Ordering::Relaxed);
+        });
+    if spawned.is_err() {
+        FOLLOWING.store(false, Ordering::Relaxed);
+    }
+}
+
+/// Reads where Quick Settings are until they close, for the flyout's frames.
+fn follow_quick_settings() -> windows::core::Result<()> {
+    qs::init_com()?;
+    let reader = qs::Reader::new()?;
+    // The top of the panels and the cards on them, kept while the pointer is
+    // over the flyout: a card leaving must not move the flyout under it.
+    let mut cards_top: Option<i32> = None;
+    // They become the foreground window a moment before their window shows,
+    // and build their panels after that. Asked meanwhile, UI Automation
+    // stalls for seconds; a moment later it answers in milliseconds.
+    let started = Instant::now();
+    while !qs::is_open() {
+        if started.elapsed() > OPENING {
+            return Ok(());
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    std::thread::sleep(SETTLE);
+    while source() == QuickControls::QuickSettings {
+        let Some(panels) = reader.read() else { break };
+        let (area, dpi) = platform::work_area_at(panels.left, panels.bottom)
+            .unwrap_or((ScreenRect::default(), 96));
+        let gap = (2.0 * MARGIN * dpi as f32 / 96.0).round() as i32;
+        let hwnd = state().hwnd;
+        let held = cards_top
+            .filter(|_| hwnd != 0 && qs::pointer_over(hwnd))
+            .map(|t| t.min(panels.top));
+        let top = held.unwrap_or_else(|| qs::with_other_cards(panels, gap).top);
+        cards_top = Some(top);
+        state().quick = Some(Quick {
+            panels: Panels { top, ..panels },
+            dpi,
+            screen_top: area.top,
+        });
+        repaint();
+        std::thread::sleep(FOLLOW_EVERY);
+    }
+    Ok(())
+}
+
+/// Above the panels, right edges in line, as far from them as the flyout is
+/// from the taskbar; to their left when the screen is too short for that.
+fn by_panels(q: &Quick, width: i32, height: i32, margin: i32) -> (i32, i32) {
+    let above = q.panels.top - margin - height;
+    if above >= q.screen_top + margin {
+        (q.panels.right - width, above)
+    } else {
+        (q.panels.left - margin - width, q.panels.bottom - height)
+    }
 }
 
 /// A left click on the tray icon at (x, y), in physical pixels.
@@ -198,8 +322,10 @@ fn toggle_locked(st: &mut State, x: i32, y: i32) -> Vec<Win> {
             platform::round_corners(hwnd);
         }
     }
+    st.with_quick = false;
     if st.hwnd != 0 && st.painted {
-        let mut ops: Vec<Win> = target(st).into_iter().collect();
+        let mut ops = vec![Win::NoActivate(st.hwnd, false)];
+        ops.extend(target(st));
         ops.push(Win::Show(st.hwnd));
         ops
     } else {
@@ -230,20 +356,40 @@ fn close(st: &mut State) -> Vec<Win> {
     st.pending_show = false;
     st.hidden_at = Some(Instant::now());
     st.expanded = None;
+    st.with_quick = false;
     (st.hwnd != 0)
         .then_some(Win::Hide(st.hwnd))
         .into_iter()
         .collect()
 }
 
-/// Bottom right of the work area (above the notification area), or the corner
-/// next to the taskbar when it is at the top or on the left.
+/// Where the flyout goes: above Quick Settings (`by_panels`), or from the tray
+/// icon at the bottom right of the work area, above the notification area (the
+/// corner next to the taskbar when that is at the top or on the left).
 fn target(st: &State) -> Option<Win> {
-    let a = st.anchor?;
     if st.hwnd == 0 {
         return None;
     }
-    let scale = a.dpi as f32 / 96.0 * if st.zoom > 0.0 { st.zoom } else { 1.0 };
+    let zoom = if st.zoom > 0.0 { st.zoom } else { 1.0 };
+    if st.with_quick {
+        let q = st.quick?;
+        let scale = q.dpi as f32 / 96.0 * zoom;
+        let px = |logical: f32| (logical * scale).round() as i32;
+        let (margin, width) = (px(MARGIN), px(WIDTH));
+        let height = ((st.height * scale).ceil() as i32).max(px(120.0));
+        let (left, top) = by_panels(&q, width, height, margin);
+        return Some(Win::Place(
+            st.hwnd,
+            ScreenRect {
+                left,
+                top,
+                right: left + width,
+                bottom: top + height,
+            },
+        ));
+    }
+    let a = st.anchor?;
+    let scale = a.dpi as f32 / 96.0 * zoom;
     let px = |logical: f32| (logical * scale).round() as i32;
     let margin = px(MARGIN);
     let width = px(WIDTH);
@@ -323,10 +469,36 @@ fn frame(root: &mut Ui, ctrl: &Shared) {
         let mut st = state();
         st.height = height;
         st.zoom = root.ctx().zoom_factor();
-        // Closes once another window is in front, as the system flyouts do.
-        // Asks Windows rather than egui: egui only knows about focus changes
-        // it saw a frame for, and the window may never get the focus at all.
-        if st.visible && st.hwnd != 0 && !st.pending_show {
+        // Quick Settings opened or closed.
+        if st.quick.is_some() && !st.with_quick {
+            if st.visible {
+                // Open from the tray icon: closed first.
+                ops.extend(close(&mut st));
+            }
+            if st.hwnd == 0 {
+                if let Some(hwnd) = platform::find_thread_window(TITLE) {
+                    st.hwnd = hwnd;
+                    platform::round_corners(hwnd);
+                }
+            }
+            if st.hwnd != 0 {
+                st.visible = true;
+                st.with_quick = true;
+                st.pending_show = false;
+                st.opened_at = Some(Instant::now());
+                ops.push(Win::NoActivate(st.hwnd, true));
+                ops.extend(target(&st));
+                ops.push(Win::ShowInactive(st.hwnd));
+            }
+        } else if st.quick.is_none() && st.with_quick {
+            ops.extend(close(&mut st));
+            closed = true;
+        }
+        // From the tray icon, it closes once another window is in front, as
+        // the system flyouts do. Asks Windows rather than egui: egui only
+        // knows about focus changes it saw a frame for, and the window may
+        // never get the focus at all.
+        if st.visible && !st.with_quick && st.hwnd != 0 && !st.pending_show {
             let opening = st.opened_at.is_some_and(|t| t.elapsed() < OPENING);
             if platform::is_foreground(st.hwnd) {
                 // In front: nothing to do.

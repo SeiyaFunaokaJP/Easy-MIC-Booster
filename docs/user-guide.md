@@ -87,7 +87,7 @@ Open **Settings** with the gear icon at the top right.
 | **Language** | UI language (follows Windows on first run) |
 | **Start when I sign in** | Launch automatically when you sign in to Windows (starts in the tray) |
 | **Keep running in the tray when closed** | Off: closing the window exits the app |
-| **Open quick controls from the tray icon** | Windows only. Off: a click on the tray icon opens the window |
+| **Open quick controls from** | Windows only. **Tray icon** (default), **Quick Settings (the volume button)** on Windows 11, or **Nowhere**. With the last two, a click on the tray icon opens the window |
 | **Allow gain above +50 dB** | Raises the gain limit to +100 dB |
 | **Output ceiling** | Peak level the limiter holds the output under (default −1.0 dBFS) |
 | **Check for updates** | Checks GitHub for a newer release at startup |

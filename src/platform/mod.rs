@@ -5,6 +5,8 @@
 mod windows;
 #[cfg(windows)]
 pub use self::windows::*;
+#[cfg(windows)]
+pub mod quick_settings;
 
 #[cfg(not(windows))]
 mod unix;

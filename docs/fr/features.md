@@ -144,7 +144,9 @@ Sous Windows, cliquez sur l'icône de la zone de notification pour ouvrir un pet
 - **Entrée** et **Sortie** -- cliquez sur l'une d'elles pour choisir un autre périphérique
 - **Ouvrir Easy MIC Booster**
 
-Le panneau se ferme quand vous cliquez ailleurs ou appuyez sur Échap. Double-cliquez sur l'icône pour ouvrir la fenêtre. Pour ouvrir la fenêtre d'un simple clic, désactivez **Ouvrir les commandes rapides depuis la zone de notification** dans les paramètres.
+Le panneau se ferme quand vous cliquez ailleurs ou appuyez sur Échap. Double-cliquez sur l'icône pour ouvrir la fenêtre.
+
+Sous Windows 11, le panneau peut plutôt s'ouvrir avec les Paramètres rapides (les boutons réseau et volume de la barre des tâches). Il s'affiche juste au-dessus des Paramètres rapides et se ferme avec eux. Dans les paramètres, réglez **Ouvrir les commandes rapides depuis** sur **Paramètres rapides (bouton de volume)**. Un clic sur l'icône de la zone de notification ouvre alors la fenêtre, comme avec **Nulle part**.
 
 ## Menu de la zone de notification {#tray-menu}
 

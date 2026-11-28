@@ -143,7 +143,9 @@ On Windows, click the tray icon to open a small panel above the notification are
 - **Input** and **Output** -- click one to choose another device
 - **Open Easy MIC Booster**
 
-The panel closes when you click elsewhere or press Esc. Double-click the icon to open the window. To open the window with a single click instead, turn off **Open quick controls from the tray icon** in Settings.
+The panel closes when you click elsewhere or press Esc. Double-click the icon to open the window.
+
+On Windows 11, the panel can open with Quick Settings instead (the network and volume buttons on the taskbar). The panel appears just above Quick Settings and closes when they close. In Settings, set **Open quick controls from** to **Quick Settings (the volume button)**. A click on the tray icon then opens the window, as it does with **Nowhere**.
 
 ## Tray Menu
 

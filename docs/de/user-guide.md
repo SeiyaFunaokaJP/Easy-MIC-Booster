@@ -88,7 +88,7 @@ Legen Sie `CABLE Output` in den Windows-Soundeinstellungen **nicht** als **Stand
 | **Sprache** | Sprache der Oberfläche (folgt beim ersten Start Windows) |
 | **Bei der Anmeldung starten** | Startet automatisch bei der Anmeldung an Windows (im Infobereich) |
 | **Beim Schließen im Infobereich weiterlaufen** | Aus: Schließen des Fensters beendet die App |
-| **Schnellsteuerung per Klick im Infobereich öffnen** | Nur Windows. Aus: Ein Klick auf das Symbol öffnet das Fenster |
+| **Schnellsteuerung öffnen über** | Nur Windows. **Infobereich-Symbol** (Standard), **Schnelleinstellungen (Lautstärketaste)** unter Windows 11 oder **Gar nicht**. Bei den letzten beiden öffnet ein Klick auf das Symbol das Fenster |
 | **Verstärkung über +50 dB zulassen** | Hebt die Verstärkungsgrenze auf +100 dB an |
 | **Ausgangsobergrenze** | Spitzenpegel, unter dem der Limiter den Ausgang hält (Standard −1.0 dBFS) |
 | **Nach Updates suchen** | Prüft beim Start auf GitHub, ob eine neuere Version vorliegt |
