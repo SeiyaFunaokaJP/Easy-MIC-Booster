@@ -108,7 +108,7 @@ pub fn create(hooks: TrayHooks) {
 
     MenuEvent::set_event_handler(Some(|e: MenuEvent| {
         let action = STATE.with(|s| {
-            let s = s.borrow();
+            let s = s.try_borrow().ok()?;
             let idx: usize = e.id.0.strip_prefix('a')?.parse().ok()?;
             s.as_ref()?.actions.get(idx).cloned()
         });
@@ -127,9 +127,10 @@ pub fn create(hooks: TrayHooks) {
             rect,
             ..
         } => {
-            let Some(h) = HOOKS.get() else { return };
-            if !lock(&h.controller).settings.tray_quick_controls {
-                (h.show_window)();
+            if !crate::flyout::enabled() {
+                if let Some(h) = HOOKS.get() {
+                    (h.show_window)();
+                }
                 return;
             }
             let x = rect.position.x + rect.size.width as f64 / 2.0;
@@ -194,11 +195,14 @@ fn run(action: Action) {
 }
 
 /// Rebuilds the menu if the controller changed since the last build.
-/// Must run on the tray's thread.
+/// Must run on the tray's thread. Tray events can arrive while a tray call
+/// below waits on Explorer; such a nested call does nothing.
 pub fn refresh() {
     let Some(h) = HOOKS.get() else { return };
     STATE.with(|cell| {
-        let mut guard = cell.borrow_mut();
+        let Ok(mut guard) = cell.try_borrow_mut() else {
+            return;
+        };
         let Some(st) = guard.as_mut() else { return };
         let c = lock(&h.controller);
         let status = c.status();
