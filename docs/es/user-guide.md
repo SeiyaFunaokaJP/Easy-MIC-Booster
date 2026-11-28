@@ -88,7 +88,7 @@ Abra **Ajustes** con el icono del engranaje en la esquina superior derecha.
 | **Idioma** | Idioma de la interfaz (sigue a Windows en el primer inicio) |
 | **Iniciar al iniciar sesión** | Se inicia automáticamente al iniciar sesión en Windows (arranca en la bandeja) |
 | **Seguir en la bandeja del sistema al cerrar** | Desactivado: al cerrar la ventana se sale de la aplicación |
-| **Abrir los controles rápidos desde la bandeja** | Solo Windows. Desactivado: al hacer clic en el icono se abre la ventana |
+| **Abrir los controles rápidos desde** | Solo Windows. **Icono de la bandeja** (predeterminado), **Configuración rápida (botón de volumen)** en Windows 11 o **Ningún sitio**. Con las dos últimas, al hacer clic en el icono se abre la ventana |
 | **Permitir ganancia superior a +50 dB** | Eleva el límite de ganancia a +100 dB |
 | **Techo de salida** | Nivel de pico por debajo del cual el limitador mantiene la salida (predeterminado −1.0 dBFS) |
 | **Buscar actualizaciones** | Comprueba en GitHub si hay una versión más reciente al iniciar |

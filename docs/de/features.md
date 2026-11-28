@@ -144,7 +144,9 @@ Unter Windows öffnet ein Klick auf das Symbol im Infobereich ein kleines Bedien
 - **Eingang** und **Ausgang** -- anklicken, um ein anderes Gerät zu wählen
 - **Easy MIC Booster öffnen**
 
-Das Bedienfeld schließt sich, wenn Sie woanders klicken oder Esc drücken. Ein Doppelklick auf das Symbol öffnet das Hauptfenster. Soll schon ein einfacher Klick das Hauptfenster öffnen, schalten Sie in den Einstellungen **Schnellsteuerung per Klick im Infobereich öffnen** aus.
+Das Bedienfeld schließt sich, wenn Sie woanders klicken oder Esc drücken. Ein Doppelklick auf das Symbol öffnet das Hauptfenster.
+
+Unter Windows 11 kann sich das Bedienfeld stattdessen mit den Schnelleinstellungen öffnen (Netzwerk- und Lautstärkesymbol in der Taskleiste). Es erscheint direkt über den Schnelleinstellungen und schließt sich mit ihnen. Stellen Sie dazu in den Einstellungen **Schnellsteuerung öffnen über** auf **Schnelleinstellungen (Lautstärketaste)**. Ein Klick auf das Symbol im Infobereich öffnet dann das Hauptfenster, ebenso wie bei **Gar nicht**.
 
 ## Menü im Infobereich {#tray-menu}
 

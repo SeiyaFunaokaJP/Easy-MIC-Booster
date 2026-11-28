@@ -385,7 +385,7 @@ impl eframe::App for App {
         #[cfg(not(target_os = "linux"))]
         crate::tray::refresh();
         #[cfg(windows)]
-        crate::flyout::keep(ctx, &self.ctrl, snap.settings.tray_quick_controls);
+        crate::flyout::keep(ctx, &self.ctrl, snap.settings.quick_controls);
 
         if visible {
             if running && (self.meters.active() || self.graph.spectrum_active()) {
@@ -1704,11 +1704,31 @@ impl App {
 
                 #[cfg(windows)]
                 {
-                    ui.label(dim(tr("Settings_TrayQuickControls")));
-                    let mut v = s.tray_quick_controls;
-                    if toggle(ui, &mut v).changed() {
-                        lock(&self.ctrl).edit_settings(|x| x.tray_quick_controls = v);
+                    use crate::config::QuickControls;
+                    ui.label(dim(tr("Settings_QuickControlsFrom")));
+                    let label = |q: QuickControls| match q {
+                        QuickControls::TrayIcon => tr("QuickControls_TrayIcon"),
+                        QuickControls::QuickSettings => tr("QuickControls_QuickSettings"),
+                        QuickControls::Nowhere => tr("QuickControls_Nowhere"),
+                    };
+                    let mut choices = vec![QuickControls::TrayIcon];
+                    if platform::quick_settings::supported() {
+                        choices.push(QuickControls::QuickSettings);
                     }
+                    choices.push(QuickControls::Nowhere);
+                    egui::ComboBox::from_id_salt("quick-controls")
+                        .selected_text(label(s.quick_controls))
+                        .width(200.0)
+                        .show_ui(ui, |ui| {
+                            for q in choices {
+                                if ui
+                                    .selectable_label(s.quick_controls == q, label(q))
+                                    .clicked()
+                                {
+                                    lock(&self.ctrl).edit_settings(|x| x.quick_controls = q);
+                                }
+                            }
+                        });
                     ui.end_row();
                 }
 

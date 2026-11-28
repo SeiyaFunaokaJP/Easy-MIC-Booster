@@ -88,7 +88,7 @@ Ouvrez les **Paramètres** avec l'icône d'engrenage en haut à droite.
 | **Langue** | Langue de l'interface (suit Windows au premier lancement) |
 | **Lancer à l'ouverture de session** | Démarre automatiquement à l'ouverture de votre session Windows (dans la zone de notification) |
 | **Rester dans la zone de notification à la fermeture** | Désactivé : fermer la fenêtre quitte l'application |
-| **Ouvrir les commandes rapides depuis la zone de notification** | Windows uniquement. Désactivé : un clic sur l'icône ouvre la fenêtre |
+| **Ouvrir les commandes rapides depuis** | Windows uniquement. **Icône de la zone de notification** (par défaut), **Paramètres rapides (bouton de volume)** sous Windows 11 ou **Nulle part**. Avec les deux derniers, un clic sur l'icône ouvre la fenêtre |
 | **Autoriser un gain supérieur à +50 dB** | Relève la limite de gain à +100 dB |
 | **Plafond de sortie** | Niveau de crête sous lequel le limiteur maintient la sortie (par défaut −1.0 dBFS) |
 | **Rechercher des mises à jour** | Recherche une version plus récente sur GitHub au démarrage |

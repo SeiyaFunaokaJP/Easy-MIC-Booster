@@ -102,6 +102,17 @@ impl EqBand {
     }
 }
 
+/// What opens the quick controls (Windows). With anything but `TrayIcon`, a
+/// click on the tray icon opens the main window.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum QuickControls {
+    #[default]
+    TrayIcon,
+    /// They open with Windows 11's Quick Settings, above them.
+    QuickSettings,
+    Nowhere,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum EqMode {
     /// Only the overall gain (v1.x "Flat Mode").
@@ -230,8 +241,8 @@ pub struct Settings {
     pub language: String,
     pub check_updates: bool,
     pub close_to_tray: bool,
-    /// Windows: a click on the tray icon opens the quick controls, not the window.
-    pub tray_quick_controls: bool,
+    /// Windows: what opens the quick controls.
+    pub quick_controls: QuickControls,
 }
 
 impl Default for Settings {
@@ -250,7 +261,7 @@ impl Default for Settings {
             language: crate::i18n::detect_system_language(),
             check_updates: true,
             close_to_tray: true,
-            tray_quick_controls: true,
+            quick_controls: QuickControls::default(),
         }
     }
 }

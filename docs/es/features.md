@@ -144,7 +144,9 @@ En Windows, haga clic en el icono de la bandeja para abrir un pequeño panel sob
 - **Entrada** y **Salida** -- haga clic en una para elegir otro dispositivo
 - **Abrir Easy MIC Booster**
 
-El panel se cierra al hacer clic fuera de él o al pulsar Esc. Haga doble clic en el icono para abrir la ventana. Para abrir la ventana con un solo clic, desactive **Abrir los controles rápidos desde la bandeja** en Ajustes.
+El panel se cierra al hacer clic fuera de él o al pulsar Esc. Haga doble clic en el icono para abrir la ventana.
+
+En Windows 11, el panel puede abrirse con la Configuración rápida en su lugar (los botones de red y volumen de la barra de tareas). El panel aparece justo encima de la Configuración rápida y se cierra con ella. En Ajustes, elija **Configuración rápida (botón de volumen)** en **Abrir los controles rápidos desde**. Entonces, al hacer clic en el icono de la bandeja se abre la ventana, igual que con **Ningún sitio**.
 
 ## Menú de la bandeja {#tray-menu}
 

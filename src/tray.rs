@@ -127,7 +127,7 @@ pub fn create(hooks: TrayHooks) {
             rect,
             ..
         } => {
-            if !crate::flyout::enabled() {
+            if !crate::flyout::opens_from_tray() {
                 if let Some(h) = HOOKS.get() {
                     (h.show_window)();
                 }
