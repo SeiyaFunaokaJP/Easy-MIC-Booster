@@ -365,6 +365,12 @@ pub fn show_popup(hwnd: isize) {
     }
 }
 
+/// Whether this window is the one in front (it has the keyboard focus).
+pub fn is_foreground(hwnd: isize) -> bool {
+    use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
+    unsafe { GetForegroundWindow().0 as isize == hwnd }
+}
+
 pub fn hide_popup(hwnd: isize) {
     unsafe {
         let _ = ShowWindow(HWND(hwnd as *mut _), SW_HIDE);

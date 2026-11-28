@@ -9,6 +9,7 @@
 //! frames, but only every 100 ms, so showing, placing and hiding the flyout go
 //! straight through Win32 instead of viewport commands.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{LazyLock, Mutex, MutexGuard, OnceLock};
 use std::time::{Duration, Instant};
 
@@ -36,7 +37,8 @@ const PADDING: f32 = 16.0;
 /// Gap to the taskbar and the screen edge.
 const MARGIN: f32 = 12.0;
 /// After opening, a lost focus does not close the flyout: the taskbar can take
-/// the focus back right after the click on the icon.
+/// the focus back right after the click on the icon. Meanwhile the flyout
+/// takes it back.
 const OPENING: Duration = Duration::from_millis(800);
 /// A click on the icon of an open flyout takes the focus first, which closes
 /// it; the click itself must not open it again.
@@ -68,15 +70,17 @@ struct State {
     painted: bool,
     opened_at: Option<Instant>,
     hidden_at: Option<Instant>,
-    had_focus: bool,
     anchor: Option<Anchor>,
     expanded: Option<Section>,
     /// Height of the content last frame (logical pixels).
     height: f32,
+    /// egui's zoom factor last frame.
+    zoom: f32,
 }
 
 static STATE: LazyLock<Mutex<State>> = LazyLock::new(Default::default);
-static CTX: OnceLock<(egui::Context, Shared)> = OnceLock::new();
+static CTX: OnceLock<egui::Context> = OnceLock::new();
+static ENABLED: AtomicBool = AtomicBool::new(true);
 
 fn state() -> MutexGuard<'static, State> {
     STATE.lock().unwrap_or_else(|e| e.into_inner())
@@ -86,9 +90,11 @@ fn viewport_id() -> ViewportId {
     ViewportId::from_hash_of("tray-flyout")
 }
 
-/// Runs in every frame of the main window: keeps the flyout's window in existence.
-pub fn keep(ctx: &egui::Context, ctrl: &Shared) {
-    let _ = CTX.set((ctx.clone(), ctrl.clone()));
+/// Runs in every frame of the main window: keeps the flyout's window in
+/// existence. `enabled` is the setting that a click on the tray icon opens it.
+pub fn keep(ctx: &egui::Context, ctrl: &Shared, enabled: bool) {
+    let _ = CTX.set(ctx.clone());
+    ENABLED.store(enabled, Ordering::Relaxed);
     let ctrl = ctrl.clone();
     ctx.show_viewport_deferred(
         viewport_id(),
@@ -108,31 +114,74 @@ pub fn keep(ctx: &egui::Context, ctrl: &Shared) {
     );
 }
 
+/// What to do to the window. Win32 calls run only after the state's lock is
+/// released: moving, sizing or showing the window makes Windows send it
+/// messages right away, eframe then paints it synchronously, and that frame
+/// needs the state again (a deadlock on the first click on the tray icon).
+/// A click on the icon can also arrive while a Win32 call waits on another
+/// process (`SetForegroundWindow`), and needs the state too.
+enum Win {
+    Place(isize, ScreenRect),
+    Show(isize),
+    Hide(isize),
+}
+
+fn apply(ops: Vec<Win>) {
+    for op in ops {
+        match op {
+            Win::Place(hwnd, rect) => {
+                if platform::window_rect(hwnd) != Some(rect) {
+                    platform::place_popup(hwnd, rect);
+                }
+            }
+            Win::Show(hwnd) => platform::show_popup(hwnd),
+            Win::Hide(hwnd) => platform::hide_popup(hwnd),
+        }
+    }
+}
+
+fn repaint() {
+    if let Some(ctx) = CTX.get() {
+        ctx.request_repaint_of(viewport_id());
+    }
+}
+
+/// Whether a click on the tray icon opens the flyout (a setting). Kept here so
+/// the tray needs no lock to know.
+pub fn enabled() -> bool {
+    ENABLED.load(Ordering::Relaxed)
+}
+
 /// A left click on the tray icon at (x, y), in physical pixels.
 pub fn toggle(x: i32, y: i32) {
-    let mut st = state();
+    let ops = {
+        let mut st = state();
+        toggle_locked(&mut st, x, y)
+    };
+    apply(ops);
+    repaint();
+}
+
+fn toggle_locked(st: &mut State, x: i32, y: i32) -> Vec<Win> {
     if st.visible {
         if st.opened_at.is_some_and(|t| t.elapsed() < OPENING) {
             // A double click's second click: stay.
-            if st.hwnd != 0 {
-                platform::show_popup(st.hwnd);
-            }
-            return;
+            return (st.hwnd != 0)
+                .then_some(Win::Show(st.hwnd))
+                .into_iter()
+                .collect();
         }
-        hide_locked(&mut st);
-        drop(st);
-        save();
-        return;
+        return close(st);
     }
     if st
         .hidden_at
         .take()
         .is_some_and(|t| t.elapsed() < REOPEN_GUARD)
     {
-        return;
+        return Vec::new();
     }
     let Some((area, dpi)) = platform::work_area_at(x, y) else {
-        return;
+        return Vec::new();
     };
     st.anchor = Some(Anchor {
         area,
@@ -142,7 +191,6 @@ pub fn toggle(x: i32, y: i32) {
     });
     st.expanded = None;
     st.opened_at = Some(Instant::now());
-    st.had_focus = false;
     st.visible = true;
     if st.hwnd == 0 {
         if let Some(hwnd) = platform::find_thread_window(TITLE) {
@@ -151,57 +199,51 @@ pub fn toggle(x: i32, y: i32) {
         }
     }
     if st.hwnd != 0 && st.painted {
-        place(&st);
-        platform::show_popup(st.hwnd);
+        let mut ops: Vec<Win> = target(st).into_iter().collect();
+        ops.push(Win::Show(st.hwnd));
+        ops
     } else {
+        // Shown by its next frame.
         st.pending_show = true;
-    }
-    drop(st);
-    if let Some((ctx, _)) = CTX.get() {
-        ctx.request_repaint_of(viewport_id());
-        ctx.request_repaint();
+        Vec::new()
     }
 }
 
 /// Closes the flyout (the main window opens, the user is done with it).
 pub fn hide() {
-    let mut st = state();
-    if st.visible {
-        hide_locked(&mut st);
-        drop(st);
-        save();
-    }
+    let ops = {
+        let mut st = state();
+        if !st.visible {
+            return;
+        }
+        close(&mut st)
+    };
+    apply(ops);
+    repaint();
 }
 
-fn hide_locked(st: &mut State) {
+/// Marks the flyout closed. The caller hides the window and asks for a frame,
+/// so the next opening does not show a stale one. Settings are saved by the
+/// controller's own saver thread.
+fn close(st: &mut State) -> Vec<Win> {
     st.visible = false;
     st.pending_show = false;
     st.hidden_at = Some(Instant::now());
     st.expanded = None;
-    if st.hwnd != 0 {
-        platform::hide_popup(st.hwnd);
-    }
-    // Repaint while hidden, so the next opening does not show a stale frame.
-    if let Some((ctx, _)) = CTX.get() {
-        ctx.request_repaint_of(viewport_id());
-    }
-}
-
-/// Flyout changes are discrete: write them out when it closes.
-fn save() {
-    if let Some((_, ctrl)) = CTX.get() {
-        lock(ctrl).save_now();
-    }
+    (st.hwnd != 0)
+        .then_some(Win::Hide(st.hwnd))
+        .into_iter()
+        .collect()
 }
 
 /// Bottom right of the work area (above the notification area), or the corner
 /// next to the taskbar when it is at the top or on the left.
-fn place(st: &State) {
-    let (Some(a), true) = (st.anchor, st.hwnd != 0) else {
-        return;
-    };
-    let zoom = CTX.get().map_or(1.0, |(ctx, _)| ctx.zoom_factor());
-    let scale = a.dpi as f32 / 96.0 * zoom;
+fn target(st: &State) -> Option<Win> {
+    let a = st.anchor?;
+    if st.hwnd == 0 {
+        return None;
+    }
+    let scale = a.dpi as f32 / 96.0 * if st.zoom > 0.0 { st.zoom } else { 1.0 };
     let px = |logical: f32| (logical * scale).round() as i32;
     let margin = px(MARGIN);
     let width = px(WIDTH);
@@ -217,15 +259,15 @@ fn place(st: &State) {
     } else {
         a.area.bottom - height - margin
     };
-    let rect = ScreenRect {
-        left,
-        top,
-        right: left + width,
-        bottom: top + height,
-    };
-    if platform::window_rect(st.hwnd) != Some(rect) {
-        platform::place_popup(st.hwnd, rect);
-    }
+    Some(Win::Place(
+        st.hwnd,
+        ScreenRect {
+            left,
+            top,
+            right: left + width,
+            bottom: top + height,
+        },
+    ))
 }
 
 // ---- the page ------------------------------------------------------------------
@@ -256,7 +298,6 @@ fn frame(root: &mut Ui, ctrl: &Shared) {
         });
     let height = resp.response.rect.height();
     let escape = root.input(|i| i.key_pressed(Key::Escape));
-    let focused = root.input(|i| i.viewport().focused);
 
     let mut open_main = false;
     for a in acts {
@@ -276,44 +317,50 @@ fn frame(root: &mut Ui, ctrl: &Shared) {
         }
     }
 
-    let mut st = state();
-    st.height = height;
+    let mut ops = Vec::new();
     let mut closed = false;
-    if st.visible {
-        match focused {
-            Some(true) => st.had_focus = true,
-            Some(false) if st.had_focus => {
-                if st.opened_at.is_some_and(|t| t.elapsed() < OPENING) {
-                    platform::show_popup(st.hwnd);
+    {
+        let mut st = state();
+        st.height = height;
+        st.zoom = root.ctx().zoom_factor();
+        // Closes once another window is in front, as the system flyouts do.
+        // Asks Windows rather than egui: egui only knows about focus changes
+        // it saw a frame for, and the window may never get the focus at all.
+        if st.visible && st.hwnd != 0 && !st.pending_show {
+            let opening = st.opened_at.is_some_and(|t| t.elapsed() < OPENING);
+            if platform::is_foreground(st.hwnd) {
+                // In front: nothing to do.
+            } else if opening {
+                // The taskbar can take the focus back right after the click.
+                ops.push(Win::Show(st.hwnd));
+                root.ctx().request_repaint_after(Duration::from_millis(100));
+            } else {
+                ops.extend(close(&mut st));
+                closed = true;
+            }
+        }
+        if st.visible && (escape || open_main) {
+            ops.extend(close(&mut st));
+            closed = true;
+        }
+        if st.visible {
+            ops.extend(target(&st));
+            if st.pending_show {
+                if st.painted && st.hwnd != 0 {
+                    st.pending_show = false;
+                    ops.push(Win::Show(st.hwnd));
                 } else {
-                    hide_locked(&mut st);
-                    closed = true;
+                    root.ctx().request_repaint();
                 }
             }
-            _ => {}
+            // Status and device changes from elsewhere.
+            root.ctx().request_repaint_after(Duration::from_millis(500));
         }
+        st.painted = true;
     }
-    if st.visible && (escape || open_main) {
-        hide_locked(&mut st);
-        closed = true;
-    }
-    if st.visible {
-        place(&st);
-        if st.pending_show {
-            if st.painted && st.hwnd != 0 {
-                st.pending_show = false;
-                platform::show_popup(st.hwnd);
-            } else {
-                root.ctx().request_repaint();
-            }
-        }
-        // Status and device changes from elsewhere.
-        root.ctx().request_repaint_after(Duration::from_millis(500));
-    }
-    st.painted = true;
-    drop(st);
+    apply(ops);
     if closed {
-        save();
+        root.ctx().request_repaint();
     }
     if open_main {
         crate::app::show_window();

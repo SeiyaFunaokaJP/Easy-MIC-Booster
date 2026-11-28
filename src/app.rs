@@ -385,7 +385,7 @@ impl eframe::App for App {
         #[cfg(not(target_os = "linux"))]
         crate::tray::refresh();
         #[cfg(windows)]
-        crate::flyout::keep(ctx, &self.ctrl);
+        crate::flyout::keep(ctx, &self.ctrl, snap.settings.tray_quick_controls);
 
         if visible {
             if running && (self.meters.active() || self.graph.spectrum_active()) {
