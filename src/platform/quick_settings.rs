@@ -239,11 +239,13 @@ pub fn set_no_activate(hwnd: isize, on: bool) {
     // makes both calls fail.
     unsafe {
         let h = HWND(hwnd as *mut _);
-        let style = GetWindowLongPtrW(h, GWL_EXSTYLE);
-        let flag = WS_EX_NOACTIVATE.0 as isize;
+        // The extended style fits 32 bits. GetWindowLongPtrW returns isize on
+        // 64-bit Windows and i32 on 32-bit Windows.
+        let style = GetWindowLongPtrW(h, GWL_EXSTYLE) as u32;
+        let flag = WS_EX_NOACTIVATE.0;
         let next = if on { style | flag } else { style & !flag };
         if next != style {
-            SetWindowLongPtrW(h, GWL_EXSTYLE, next);
+            SetWindowLongPtrW(h, GWL_EXSTYLE, next as _);
         }
     }
 }
